@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1AB0568927319F5900D59EC5 /* AEVulkanUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AB0568727319F5900D59EC5 /* AEVulkanUtils.cpp */; };
 		1AE63E842727B79D0035735A /* AEFX_SuiteHelper.c in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63E242727B79C0035735A /* AEFX_SuiteHelper.c */; };
 		1AE63E872727B79D0035735A /* AEGP_SuiteHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63E2D2727B79C0035735A /* AEGP_SuiteHandler.cpp */; };
 		1AE63E882727B79D0035735A /* Smart_Utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63E2E2727B79C0035735A /* Smart_Utils.cpp */; };
@@ -23,7 +24,7 @@
 		7ECB51A715DB18A300C5BAD5 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7ECB51A615DB18A300C5BAD5 /* Cocoa.framework */; };
 		8F2D54CC0C3DC8BC000535F4 /* VkSkeleton.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F2D54C90C3DC8BC000535F4 /* VkSkeleton.cpp */; };
 		8F2D54D10C3DC8FE000535F4 /* VkSkeletonPiPL.r in Rez */ = {isa = PBXBuildFile; fileRef = 8F2D54D00C3DC8FD000535F4 /* VkSkeletonPiPL.r */; };
-		8F463F260C3DD6140040C945 /* VkSkeleton_Strings.c in Sources */ = {isa = PBXBuildFile; fileRef = 8F463F240C3DD6140040C945 /* VkSkeleton_Strings.c */; };
+		8F463F260C3DD6140040C945 /* VkSkeleton_Strings.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8F463F240C3DD6140040C945 /* VkSkeleton_Strings.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -54,6 +55,8 @@
 		1AB0567F272DA97000D59EC5 /* AE_ComputeCacheSuite.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AE_ComputeCacheSuite.h; path = ../Headers/AE_ComputeCacheSuite.h; sourceTree = "<group>"; };
 		1AB05684272DC89000D59EC5 /* VkExample.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VkExample.cpp; sourceTree = "<group>"; };
 		1AB05686272EF3D500D59EC5 /* VulkanComputeDataTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = VulkanComputeDataTypes.hpp; sourceTree = "<group>"; };
+		1AB0568727319F5900D59EC5 /* AEVulkanUtils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AEVulkanUtils.cpp; sourceTree = "<group>"; };
+		1AB0568827319F5900D59EC5 /* AEVulkanUtils.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AEVulkanUtils.hpp; sourceTree = "<group>"; };
 		1AE63E242727B79C0035735A /* AEFX_SuiteHelper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = AEFX_SuiteHelper.c; sourceTree = "<group>"; };
 		1AE63E262727B79C0035735A /* Smart_Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Smart_Utils.h; sourceTree = "<group>"; };
 		1AE63E282727B79C0035735A /* Param_Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Param_Utils.h; sourceTree = "<group>"; };
@@ -76,11 +79,11 @@
 		1AE63EB02727C7AC0035735A /* VkSkeleton_Params.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = VkSkeleton_Params.h; path = ../VkSkeleton_Params.h; sourceTree = "<group>"; };
 		1AE63EB22727D7BE0035735A /* AEUtils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AEUtils.cpp; sourceTree = "<group>"; };
 		1AE63EB32727D7BE0035735A /* AEUtils.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AEUtils.hpp; sourceTree = "<group>"; };
-		7EB428DC0FBA1C80003C7DD1 /* VkSkeleton_Strings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VkSkeleton_Strings.h; path = ../VkSkeleton_Strings.h; sourceTree = SOURCE_ROOT; };
+		7EB428DC0FBA1C80003C7DD1 /* VkSkeleton_Strings.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = VkSkeleton_Strings.hpp; path = ../VkSkeleton_Strings.hpp; sourceTree = SOURCE_ROOT; };
 		7ECB51A615DB18A300C5BAD5 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
 		8F2D54C90C3DC8BC000535F4 /* VkSkeleton.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 30; name = VkSkeleton.cpp; path = ../VkSkeleton.cpp; sourceTree = SOURCE_ROOT; };
 		8F2D54D00C3DC8FD000535F4 /* VkSkeletonPiPL.r */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.rez; name = VkSkeletonPiPL.r; path = ../VkSkeletonPiPL.r; sourceTree = SOURCE_ROOT; };
-		8F463F240C3DD6140040C945 /* VkSkeleton_Strings.c */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.c; name = VkSkeleton_Strings.c; path = ../VkSkeleton_Strings.c; sourceTree = SOURCE_ROOT; };
+		8F463F240C3DD6140040C945 /* VkSkeleton_Strings.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = VkSkeleton_Strings.cpp; path = ../VkSkeleton_Strings.cpp; sourceTree = SOURCE_ROOT; };
 		C4E618CC095A3CE80012CA3F /* VkSkeleton.plugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VkSkeleton.plugin; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -146,25 +149,27 @@
 			children = (
 				1AE63EB32727D7BE0035735A /* AEUtils.hpp */,
 				1AE63EB22727D7BE0035735A /* AEUtils.cpp */,
+				1AB0568827319F5900D59EC5 /* AEVulkanUtils.hpp */,
+				1AB0568727319F5900D59EC5 /* AEVulkanUtils.cpp */,
 				1AE63EA62727C78A0035735A /* FileUtils.hpp */,
 				1AE63EA52727C78A0035735A /* FileUtils.cpp */,
+				1AE63EAB2727C79A0035735A /* VulkanDebugUtils.hpp */,
+				1AE63EAA2727C79A0035735A /* VulkanDebugUtils.cpp */,
 			);
 			name = Utils;
 			path = ../Utils;
 			sourceTree = "<group>";
 		};
-		1AE63EA82727C79A0035735A /* Vulkan */ = {
+		1AE63EA82727C79A0035735A /* VulkanCompute */ = {
 			isa = PBXGroup;
 			children = (
 				1AB05686272EF3D500D59EC5 /* VulkanComputeDataTypes.hpp */,
 				1AE63EAC2727C79A0035735A /* VulkanComputeProgram.hpp */,
 				1AE63EA92727C79A0035735A /* VulkanComputeProgram.cpp */,
-				1AE63EAB2727C79A0035735A /* VulkanDebugUtils.hpp */,
-				1AE63EAA2727C79A0035735A /* VulkanDebugUtils.cpp */,
 				1AB05684272DC89000D59EC5 /* VkExample.cpp */,
 			);
-			name = Vulkan;
-			path = ../Vulkan;
+			name = VulkanCompute;
+			path = ../VulkanCompute;
 			sourceTree = "<group>";
 		};
 		C4E6187C095A3C800012CA3F = {
@@ -172,12 +177,12 @@
 			children = (
 				1AE63E1F2727B79C0035735A /* AdobeSDK */,
 				1AE63EA42727C78A0035735A /* Utils */,
-				1AE63EA82727C79A0035735A /* Vulkan */,
+				1AE63EA82727C79A0035735A /* VulkanCompute */,
 				1AE63EAF2727C7A20035735A /* VkSkeleton.hpp */,
 				8F2D54C90C3DC8BC000535F4 /* VkSkeleton.cpp */,
 				1AE63EB02727C7AC0035735A /* VkSkeleton_Params.h */,
-				7EB428DC0FBA1C80003C7DD1 /* VkSkeleton_Strings.h */,
-				8F463F240C3DD6140040C945 /* VkSkeleton_Strings.c */,
+				7EB428DC0FBA1C80003C7DD1 /* VkSkeleton_Strings.hpp */,
+				8F463F240C3DD6140040C945 /* VkSkeleton_Strings.cpp */,
 				1AE63EA12727C4480035735A /* Info.plist */,
 				8F2D54D00C3DC8FD000535F4 /* VkSkeletonPiPL.r */,
 				7ECB51A615DB18A300C5BAD5 /* Cocoa.framework */,
@@ -272,16 +277,17 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1AE63EAE2727C79A0035735A /* VulkanDebugUtils.cpp in Sources */,
 				1AE63E842727B79D0035735A /* AEFX_SuiteHelper.c in Sources */,
-				1AE63EA72727C78B0035735A /* FileUtils.cpp in Sources */,
 				1AE63E872727B79D0035735A /* AEGP_SuiteHandler.cpp in Sources */,
-				8F2D54CC0C3DC8BC000535F4 /* VkSkeleton.cpp in Sources */,
-				8F463F260C3DD6140040C945 /* VkSkeleton_Strings.c in Sources */,
+				1AE63EB42727D7BE0035735A /* AEUtils.cpp in Sources */,
+				1AB0568927319F5900D59EC5 /* AEVulkanUtils.cpp in Sources */,
+				1AE63EA72727C78B0035735A /* FileUtils.cpp in Sources */,
 				1AE63E8A2727B79D0035735A /* MissingSuiteError.cpp in Sources */,
 				1AE63E882727B79D0035735A /* Smart_Utils.cpp in Sources */,
+				8F2D54CC0C3DC8BC000535F4 /* VkSkeleton.cpp in Sources */,
+				8F463F260C3DD6140040C945 /* VkSkeleton_Strings.cpp in Sources */,
 				1AE63EAD2727C79A0035735A /* VulkanComputeProgram.cpp in Sources */,
-				1AE63EB42727D7BE0035735A /* AEUtils.cpp in Sources */,
+				1AE63EAE2727C79A0035735A /* VulkanDebugUtils.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -6,7 +6,9 @@
 
 #include "AEFX_SuiteHelper.h"
 #include "AEUtils.hpp"
+#include "AEVulkanUtils.hpp"
 #include "Smart_Utils.h"
+#include "VulkanComputeDataTypes.hpp"
 #include "VulkanComputeProgram.hpp"
 
 #include "VkSkeleton.hpp"
@@ -178,7 +180,7 @@ SmartRender(
     PF_EffectWorld*     input_worldP = NULL;
     PF_EffectWorld*     output_worldP = NULL;
     PF_WorldSuite2*     wsP = NULL;
-    PF_PixelFormat		format = PF_PixelFormat_INVALID;
+    PF_PixelFormat		pfPixelFormat = PF_PixelFormat_INVALID;
     PF_FpLong			sliderVal = 0;
     PF_ParamDef         slider_param;
     AEGP_SuiteHandler   suites(in_data->pica_basicP);
@@ -218,49 +220,37 @@ SmartRender(
     if (!err){
         try
         {
-            CHECK(wsP->PF_GetPixelFormat(input_worldP, &format));
+            CHECK(wsP->PF_GetPixelFormat(input_worldP, &pfPixelFormat));
             
-            A_long inputWidth   = input_worldP->width;
-            A_long inputHeight  = input_worldP->height;
+            ImageInfo imageInfo{};
+            imageInfo.width = input_worldP->width;
+            imageInfo.height = input_worldP->height;
+            imageInfo.pixelFormat = AEVulkanUtils::pixelFormatForPFPixelFormat(pfPixelFormat);
             
-            // upload the input world to a texture
-            size_t pixSize;
-            gl::GLenum glFmt;
-            float multiplier16bit;
-            gl::GLuint inputFrameTexture = UploadTexture(suites, format, input_worldP, output_worldP, in_data, pixSize, glFmt, multiplier16bit);
+            auto copyInputWorldToBuffer = [&](void* buffer)
+            {
+                AEUtils::copyImageData(suites,
+                                       in_data,
+                                       pfPixelFormat,
+                                       input_worldP,
+                                       output_worldP,
+                                       AEUtils::CopyCommand::InputWorldToBuffer,
+                                       buffer);
+            };
             
-            // Set up the frame-buffer object just like a window.
-            AESDK_OpenGL_MakeReadyToRender(*renderContext.get(), renderContext->mOutputFrameTexture);
-            ReportIfErrorFramebuffer(in_data, out_data);
+            auto copyBufferToOutputWorld = [&](void* buffer)
+            {
+                AEUtils::copyImageData(suites,
+                                       in_data,
+                                       pfPixelFormat,
+                                       input_worldP,
+                                       output_worldP,
+                                       AEUtils::CopyCommand::BufferToOutputWorld,
+                                       buffer);
+            };
             
-            glViewport(0, 0, widthL, heightL);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
+            computeProgram.process(imageInfo, copyInputWorldToBuffer, copyBufferToOutputWorld);
             
-            // - simply blend the texture inside the frame buffer
-            // - TODO: hack your own shader there
-            RenderGL(renderContext, widthL, heightL, inputFrameTexture, sliderVal, multiplier16bit);
-            
-            // - we toggle PBO textures (we use the PBO we just created as an input)
-            AESDK_OpenGL_MakeReadyToRender(*renderContext.get(), inputFrameTexture);
-            ReportIfErrorFramebuffer(in_data, out_data);
-            
-            glClear(GL_COLOR_BUFFER_BIT);
-            
-            // swizzle using the previous output
-            SwizzleGL(renderContext, widthL, heightL, renderContext->mOutputFrameTexture, multiplier16bit);
-            
-            if (hasGremedy) {
-                gl::glFrameTerminatorGREMEDY();
-            }
-            
-            // - get back to CPU the result, and inside the output world
-            DownloadTexture(renderContext, suites, input_worldP, output_worldP, in_data,
-                            format, pixSize, glFmt);
-            
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glBindTexture(GL_TEXTURE_2D, 0);
-            glDeleteTextures(1, &inputFrameTexture);
         }
         catch (PF_Err& thrown_err)
         {

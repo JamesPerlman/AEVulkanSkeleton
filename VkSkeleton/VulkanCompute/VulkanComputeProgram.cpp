@@ -47,17 +47,11 @@ void VulkanComputeProgram::tearDown()
     destroyVulkanInstance();
 }
 
-// MARK: - Load Shader
-
-void VulkanComputeProgram::initializeShader(std::string filePath)
-{
-}
-
 // MARK: - Run
 
-void VulkanComputeProgram::process(VulkanComputeProgram::ImageInfo imageInfo,
-                                   std::function<void(void*)>& writeInputPixels,
-                                   std::function<void(void*)>& readOutputPixels)
+void VulkanComputeProgram::process(ImageInfo imageInfo,
+                                   std::function<void(void*)> writeInputPixels,
+                                   std::function<void(void*)> readOutputPixels)
 {
     resizeBuffersIfNeeded(imageInfo.size());
     

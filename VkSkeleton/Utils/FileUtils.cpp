@@ -10,7 +10,7 @@
 
 using namespace FileUtils;
 
-std::vector<char> readFile(const std::string& filePath)
+std::vector<char> FileUtils::readFile(const std::string& filePath)
 {
     std::ifstream file(filePath, std::ios::ate | std::ios::binary);
     

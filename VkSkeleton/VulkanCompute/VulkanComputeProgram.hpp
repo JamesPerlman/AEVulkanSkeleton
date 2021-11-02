@@ -20,30 +20,12 @@ class VulkanComputeProgram
 {
 public:
     
-    enum PixelFormat : size_t {
-        ARGB32 = 32,
-        ARGB16 = 16,
-        ARGB8  = 8,
-    };
-
-    struct ImageInfo {
-        uint32_t imageWidth;
-        uint32_t imageHeight;
-        
-        PixelFormat pixelFormat;
-        
-        size_t size() {
-            return static_cast<size_t>(pixelFormat) * static_cast<size_t>(imageWidth * imageHeight);
-        }
-    };
-    
     void setUp(std::string shaderFilePath);
     void tearDown();
     
-    void initializeShader(std::string filePath);
     void process(ImageInfo imageInfo,
-                 std::function<void(void*)>& writeInputPixels,
-                 std::function<void(void*)>& readOutputPixels);
+                 std::function<void(void*)> writeInputPixels,
+                 std::function<void(void*)> readOutputPixels);
     
 private:
     

@@ -5,16 +5,9 @@
 //  Created by James Perlman on 10/25/21.
 //
 
-#include "AE_EffectCB.h"
-#include "AEFX_SuiteHelper.h"
 #include "AEUtils.hpp"
 
 using namespace AEUtils;
-
-// MARK: - Macros
-
-// Error checking macro
-#define CHECK(err) { PF_Err err1 = err; if (err1 != PF_Err_NONE) { throw PF_Err(err1); } }
 
 // MARK: - Get Resources Path
 
@@ -33,7 +26,7 @@ std::string wcharToString(const wchar_t* pcs)
 }
 #endif
 
-std::string getResourcePath(PF_InData* in_data)
+std::string AEUtils::getResourcePath(PF_InData* in_data)
 {
     std::string resourcePath;
     
@@ -111,37 +104,12 @@ CopyPixelFloatFromBufferToOutputWorld(void*             refcon,
     return PF_Err_NONE;
 }
 
-// Fetch ARGB pixels from input_worldP and stick them in a floatBufferP
-void fetchARGB32Pixels(AEGP_SuiteHandler&   suites,
-                       PF_InData*           in_data,
-                       PF_EffectWorld*      input_worldP,
-                       PF_PixelFloat*       floatBufferP)
-{
-    CopyPixelFloat_t refcon{};
-    refcon.floatBufferP = floatBufferP;
-    refcon.input_worldP = input_worldP;
-    
-    CHECK(suites
-          .IterateFloatSuite1()
-          ->iterate(in_data,
-                    0,
-                    input_worldP->height,
-                    input_worldP,
-                    nullptr,
-                    reinterpret_cast<void*>(&refcon),
-                    CopyPixelFloatFromInputWorldToBuffer,
-                    input_worldP));
-    //              ^^^
-    // The last arg of iterate is not used since we are copying from input_worldP to refcon,
-    // however a PF_EffectWorld is required so we are just passing the input_worldP again
-}
-
-void copyImageData(AEGP_SuiteHandler&   suites,
+void AEUtils::copyImageData(AEGP_SuiteHandler&   suites,
                    PF_InData*           in_data,
                    PF_PixelFormat       pixelFormat,
                    PF_EffectWorld*      input_worldP,
                    PF_EffectWorld*      output_worldP,
-                   CopyIO copyCommand,
+                   CopyCommand          copyCommand,
                    void*                bufferP)
 {
     switch (pixelFormat)
@@ -155,13 +123,13 @@ void copyImageData(AEGP_SuiteHandler&   suites,
             
             switch (copyCommand)
             {
-                case CopyIO::InputWorldToBuffer:
+                case CopyCommand::InputWorldToBuffer:
                 {
                     copyFunction = CopyPixelFloatFromInputWorldToBuffer;
                     refcon.input_worldP = input_worldP;
                     break;
                 }
-                case CopyIO::BufferToOutputWorld:
+                case CopyCommand::BufferToOutputWorld:
                 {
                     copyFunction = CopyPixelFloatFromBufferToOutputWorld;
                     refcon.output_worldP = output_worldP;
@@ -186,7 +154,7 @@ void copyImageData(AEGP_SuiteHandler&   suites,
             
             switch (copyCommand)
             {
-                case CopyIO::BufferToOutputWorld:
+                case CopyCommand::BufferToOutputWorld:
                 {
                     size_t bufferSize = output_worldP->width * sizeof(PF_Pixel16);
                     PF_Pixel16* pixelDataStart = NULL;
@@ -195,7 +163,7 @@ void copyImageData(AEGP_SuiteHandler&   suites,
                     
                     break;
                 }
-                case CopyIO::InputWorldToBuffer:
+                case CopyCommand::InputWorldToBuffer:
                 {
                     size_t bufferSize = input_worldP->width * sizeof(PF_Pixel16);
                     PF_Pixel16* pixelDataStart = NULL;
@@ -214,7 +182,7 @@ void copyImageData(AEGP_SuiteHandler&   suites,
             
             switch (copyCommand)
             {
-                case CopyIO::BufferToOutputWorld:
+                case CopyCommand::BufferToOutputWorld:
                 {
                     size_t bufferSize = output_worldP->width * sizeof(PF_Pixel8);
                     PF_Pixel8* pixelDataStart = NULL;
@@ -222,7 +190,7 @@ void copyImageData(AEGP_SuiteHandler&   suites,
                     memcpy(pixelDataStart, buffer8P, bufferSize);
                     break;
                 }
-                case CopyIO::InputWorldToBuffer:
+                case CopyCommand::InputWorldToBuffer:
                 {
                     size_t bufferSize = input_worldP->width * sizeof(PF_Pixel8);
                     PF_Pixel8* pixelDataStart = NULL;

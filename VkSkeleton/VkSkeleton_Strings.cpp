@@ -1,4 +1,4 @@
-#include "VkSkeleton_Strings.h"
+#include "VkSkeleton.hpp"
 
 
 typedef struct {

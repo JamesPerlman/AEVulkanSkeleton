@@ -34,7 +34,7 @@ typedef float				fpshort;
 #include "Param_Utils.h"
 
 #include "VkSkeleton_Params.h"
-#include "VkSkeleton_Strings.h"
+#include "VkSkeleton_Strings.hpp"
 
 /* Versioning information */
 
