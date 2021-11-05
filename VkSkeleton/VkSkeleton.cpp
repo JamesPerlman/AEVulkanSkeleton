@@ -65,7 +65,7 @@ GlobalSetup (
     {
         resourcePath = AEUtils::getResourcePath(in_data);
         
-        auto computeShaderPath = resourcePath + "/shaders/compute.spv";
+        auto computeShaderPath = resourcePath + "/Shaders/simple.comp";
         
         computeProgram.setUp(computeShaderPath);
     }

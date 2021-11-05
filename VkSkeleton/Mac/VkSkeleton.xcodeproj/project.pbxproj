@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1A74E2C72734AC9E00089B12 /* simple.comp in Resources */ = {isa = PBXBuildFile; fileRef = 1A74E2C62734AC9E00089B12 /* simple.comp */; };
 		1AB0568927319F5900D59EC5 /* AEVulkanUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AB0568727319F5900D59EC5 /* AEVulkanUtils.cpp */; };
+		1AB5205B2734AD6600F6B065 /* setup-vulkan-env.sh in Resources */ = {isa = PBXBuildFile; fileRef = 1AB5205A2734AD6600F6B065 /* setup-vulkan-env.sh */; };
 		1AE63E842727B79D0035735A /* AEFX_SuiteHelper.c in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63E242727B79C0035735A /* AEFX_SuiteHelper.c */; };
 		1AE63E872727B79D0035735A /* AEGP_SuiteHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63E2D2727B79C0035735A /* AEGP_SuiteHandler.cpp */; };
 		1AE63E882727B79D0035735A /* Smart_Utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63E2E2727B79C0035735A /* Smart_Utils.cpp */; };
@@ -52,11 +54,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1A74E2C62734AC9E00089B12 /* simple.comp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = simple.comp; sourceTree = "<group>"; };
 		1AB0567F272DA97000D59EC5 /* AE_ComputeCacheSuite.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AE_ComputeCacheSuite.h; path = ../Headers/AE_ComputeCacheSuite.h; sourceTree = "<group>"; };
 		1AB05684272DC89000D59EC5 /* VkExample.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VkExample.cpp; sourceTree = "<group>"; };
 		1AB05686272EF3D500D59EC5 /* VulkanComputeDataTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = VulkanComputeDataTypes.hpp; sourceTree = "<group>"; };
 		1AB0568727319F5900D59EC5 /* AEVulkanUtils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AEVulkanUtils.cpp; sourceTree = "<group>"; };
 		1AB0568827319F5900D59EC5 /* AEVulkanUtils.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AEVulkanUtils.hpp; sourceTree = "<group>"; };
+		1AB5205A2734AD6600F6B065 /* setup-vulkan-env.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "setup-vulkan-env.sh"; sourceTree = "<group>"; };
 		1AE63E242727B79C0035735A /* AEFX_SuiteHelper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = AEFX_SuiteHelper.c; sourceTree = "<group>"; };
 		1AE63E262727B79C0035735A /* Smart_Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Smart_Utils.h; sourceTree = "<group>"; };
 		1AE63E282727B79C0035735A /* Param_Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Param_Utils.h; sourceTree = "<group>"; };
@@ -101,6 +105,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1A74E2C52734AC9E00089B12 /* shaders */ = {
+			isa = PBXGroup;
+			children = (
+				1A74E2C62734AC9E00089B12 /* simple.comp */,
+			);
+			name = shaders;
+			path = ../shaders;
+			sourceTree = "<group>";
+		};
 		1AE63E1F2727B79C0035735A /* AdobeSDK */ = {
 			isa = PBXGroup;
 			children = (
@@ -144,7 +157,7 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		1AE63EA42727C78A0035735A /* Utils */ = {
+		1AE63EA42727C78A0035735A /* utils */ = {
 			isa = PBXGroup;
 			children = (
 				1AE63EB32727D7BE0035735A /* AEUtils.hpp */,
@@ -156,8 +169,8 @@
 				1AE63EAB2727C79A0035735A /* VulkanDebugUtils.hpp */,
 				1AE63EAA2727C79A0035735A /* VulkanDebugUtils.cpp */,
 			);
-			name = Utils;
-			path = ../Utils;
+			name = utils;
+			path = ../utils;
 			sourceTree = "<group>";
 		};
 		1AE63EA82727C79A0035735A /* VulkanCompute */ = {
@@ -176,7 +189,8 @@
 			isa = PBXGroup;
 			children = (
 				1AE63E1F2727B79C0035735A /* AdobeSDK */,
-				1AE63EA42727C78A0035735A /* Utils */,
+				1A74E2C52734AC9E00089B12 /* shaders */,
+				1AE63EA42727C78A0035735A /* utils */,
 				1AE63EA82727C79A0035735A /* VulkanCompute */,
 				1AE63EAF2727C7A20035735A /* VkSkeleton.hpp */,
 				8F2D54C90C3DC8BC000535F4 /* VkSkeleton.cpp */,
@@ -185,6 +199,7 @@
 				8F463F240C3DD6140040C945 /* VkSkeleton_Strings.cpp */,
 				1AE63EA12727C4480035735A /* Info.plist */,
 				8F2D54D00C3DC8FD000535F4 /* VkSkeletonPiPL.r */,
+				1AB5205A2734AD6600F6B065 /* setup-vulkan-env.sh */,
 				7ECB51A615DB18A300C5BAD5 /* Cocoa.framework */,
 				C4E6188C095A3C800012CA3F /* Products */,
 				1AE63E8E2727BA7B0035735A /* Frameworks */,
@@ -206,6 +221,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = C4E618CE095A3CE90012CA3F /* Build configuration list for PBXNativeTarget "VkSkeleton" */;
 			buildPhases = (
+				1AB520592734ACF500F6B065 /* Compile Shaders */,
 				C4E618C8095A3CE80012CA3F /* Resources */,
 				C4E618C9095A3CE80012CA3F /* Sources */,
 				C4E618CA095A3CE80012CA3F /* Frameworks */,
@@ -255,6 +271,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1AB5205B2734AD6600F6B065 /* setup-vulkan-env.sh in Resources */,
+				1A74E2C72734AC9E00089B12 /* simple.comp in Resources */,
 				1AE63EA22727C4480035735A /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -271,6 +289,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXRezBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		1AB520592734ACF500F6B065 /* Compile Shaders */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Compile Shaders";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "source \"$SRCROOT/setup-vulkan-env.sh\"\nexport SHADER_IN_DIR=\"$SRCROOT/shaders\"\nexport SHADER_OUT_DIR=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/shaders\"\n\nmkdir -p \"$SHADER_OUT_DIR\"\n\n# loop through $SHADER_IN_DIR and compile all shaders\ncd $SHADER_IN_DIR\nfor SHADER_FILE in ./*\ndo\n    \"$VULKAN_SDK/bin/glslc\" \"$SHADER_FILE\" -o \"$SHADER_OUT_DIR/${SHADER_FILE##*/}\"\n    echo \"$SHADER_OUT_DIR/${SHADER_FILE##*/}\"\ndone\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		C4E618C9095A3CE80012CA3F /* Sources */ = {
