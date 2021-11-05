@@ -45,9 +45,10 @@ private:
     // Ephemeral objects
     size_t                      bufferSize                  = 0;
     size_t                      deviceMemorySize            = 0;
-    VkDeviceMemory              deviceMemory                = VK_NULL_HANDLE;
     VkBuffer                    inputBuffer                 = VK_NULL_HANDLE;
+    VkDeviceMemory              inputMemory                 = VK_NULL_HANDLE;
     VkBuffer                    outputBuffer                = VK_NULL_HANDLE;
+    VkDeviceMemory              outputMemory                = VK_NULL_HANDLE;
     VkDescriptorSetLayout       descriptorSetLayout         = VK_NULL_HANDLE;
     VkPipelineLayout            pipelineLayout              = VK_NULL_HANDLE;
     VkPipeline                  pipeline                    = VK_NULL_HANDLE;
@@ -76,9 +77,6 @@ private:
     
     void createCommandBuffer();
     void destroyCommandBuffer();
-    
-    void createDeviceMemory();
-    void destroyDeviceMemory();
     
     void createStorageBuffers();
     void destroyStorageBuffers();

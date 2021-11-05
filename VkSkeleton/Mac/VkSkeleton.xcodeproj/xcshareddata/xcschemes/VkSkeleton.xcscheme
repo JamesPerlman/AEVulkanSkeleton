@@ -40,6 +40,10 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
+      <PathRunnable
+         runnableDebuggingMode = "0"
+         FilePath = "/Applications/Adobe After Effects 2022/Adobe After Effects 2022.app">
+      </PathRunnable>
       <EnvironmentVariables>
          <EnvironmentVariable
             key = "VK_ICD_FILENAMES"

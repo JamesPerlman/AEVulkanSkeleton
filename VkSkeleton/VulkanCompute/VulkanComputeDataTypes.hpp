@@ -11,9 +11,9 @@
 #include <map>
 
 enum PixelFormat : size_t {
-    ARGB128 = 128,
-    ARGB64  = 64,
-    ARGB32  = 32,
+    ARGB128 = 32,
+    ARGB64  = 16,
+    ARGB32  = 4,
 };
 
 struct ImageInfo {

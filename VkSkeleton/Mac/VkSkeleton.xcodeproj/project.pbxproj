@@ -7,9 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1A74E2C72734AC9E00089B12 /* simple.comp in Resources */ = {isa = PBXBuildFile; fileRef = 1A74E2C62734AC9E00089B12 /* simple.comp */; };
 		1AB0568927319F5900D59EC5 /* AEVulkanUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AB0568727319F5900D59EC5 /* AEVulkanUtils.cpp */; };
-		1AB5205B2734AD6600F6B065 /* setup-vulkan-env.sh in Resources */ = {isa = PBXBuildFile; fileRef = 1AB5205A2734AD6600F6B065 /* setup-vulkan-env.sh */; };
 		1AE63E842727B79D0035735A /* AEFX_SuiteHelper.c in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63E242727B79C0035735A /* AEFX_SuiteHelper.c */; };
 		1AE63E872727B79D0035735A /* AEGP_SuiteHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63E2D2727B79C0035735A /* AEGP_SuiteHandler.cpp */; };
 		1AE63E882727B79D0035735A /* Smart_Utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63E2E2727B79C0035735A /* Smart_Utils.cpp */; };
@@ -18,7 +16,6 @@
 		1AE63E922727BA7B0035735A /* libvulkan.1.2.189.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 1AE63E8F2727BA7B0035735A /* libvulkan.1.2.189.dylib */; };
 		1AE63E932727BA7B0035735A /* libvulkan.1.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 1AE63E902727BA7B0035735A /* libvulkan.1.dylib */; };
 		1AE63E942727BA7B0035735A /* libvulkan.1.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 1AE63E902727BA7B0035735A /* libvulkan.1.dylib */; };
-		1AE63EA22727C4480035735A /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1AE63EA12727C4480035735A /* Info.plist */; };
 		1AE63EA72727C78B0035735A /* FileUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63EA52727C78A0035735A /* FileUtils.cpp */; };
 		1AE63EAD2727C79A0035735A /* VulkanComputeProgram.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63EA92727C79A0035735A /* VulkanComputeProgram.cpp */; };
 		1AE63EAE2727C79A0035735A /* VulkanDebugUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63EAA2727C79A0035735A /* VulkanDebugUtils.cpp */; };
@@ -54,7 +51,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		1A74E2C62734AC9E00089B12 /* simple.comp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = simple.comp; sourceTree = "<group>"; };
+		1A74E2C62734AC9E00089B12 /* simple.comp */ = {isa = PBXFileReference; explicitFileType = sourcecode.glsl; fileEncoding = 4; path = simple.comp; sourceTree = "<group>"; };
 		1AB0567F272DA97000D59EC5 /* AE_ComputeCacheSuite.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AE_ComputeCacheSuite.h; path = ../Headers/AE_ComputeCacheSuite.h; sourceTree = "<group>"; };
 		1AB05684272DC89000D59EC5 /* VkExample.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VkExample.cpp; sourceTree = "<group>"; };
 		1AB05686272EF3D500D59EC5 /* VulkanComputeDataTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = VulkanComputeDataTypes.hpp; sourceTree = "<group>"; };
@@ -271,9 +268,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1AB5205B2734AD6600F6B065 /* setup-vulkan-env.sh in Resources */,
-				1A74E2C72734AC9E00089B12 /* simple.comp in Resources */,
-				1AE63EA22727C4480035735A /* Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -307,7 +301,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "source \"$SRCROOT/setup-vulkan-env.sh\"\nexport SHADER_IN_DIR=\"$SRCROOT/shaders\"\nexport SHADER_OUT_DIR=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/shaders\"\n\nmkdir -p \"$SHADER_OUT_DIR\"\n\n# loop through $SHADER_IN_DIR and compile all shaders\ncd $SHADER_IN_DIR\nfor SHADER_FILE in ./*\ndo\n    \"$VULKAN_SDK/bin/glslc\" \"$SHADER_FILE\" -o \"$SHADER_OUT_DIR/${SHADER_FILE##*/}\"\n    echo \"$SHADER_OUT_DIR/${SHADER_FILE##*/}\"\ndone\n";
+			shellScript = "source \"$SRCROOT/setup-vulkan-env.sh\"\nexport SHADER_IN_DIR=\"$SRCROOT/../shaders\"\nexport SHADER_OUT_DIR=\"$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources/shaders\"\n\nmkdir -p \"$SHADER_OUT_DIR\"\n\n# loop through $SHADER_IN_DIR and compile all shaders\ncd $SHADER_IN_DIR || { echo \"error: Could not find $SHADER_IN_DIR - Please check the Compile Shaders script in the project's Build Phases and make sure \\$SHADER_IN_DIR points to the correct directory.\"; exit 1; }\n\nfor SHADER_FILE in ./*\ndo\n    \"$VULKAN_SDK/bin/glslc\" \"$SHADER_FILE\" -o \"$SHADER_OUT_DIR/${SHADER_FILE##*/}\"\ndone\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -365,6 +359,7 @@
 					"../glbinding/source/glbinding/include/**",
 				);
 				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = VkSkeleton;
 				REZ_PREPROCESSOR_DEFINITIONS = __MACH__;
 				SDKROOT = macosx;
 				STRIP_INSTALLED_PRODUCT = NO;
@@ -377,8 +372,10 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_CXX_LIBRARY = "libc++";
+				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
 				FRAMEWORK_SEARCH_PATHS_QUOTED_1 = "\"$(SYSTEM_DEVELOPER_DIR)/SDKs/MacOSX10.5.sdk/System/Library/Frameworks\"";
 				GCC_MODEL_TUNING = G5;
 				GCC_PREPROCESSOR_DEFINITIONS = (

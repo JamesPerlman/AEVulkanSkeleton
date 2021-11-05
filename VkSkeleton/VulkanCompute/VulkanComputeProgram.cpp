@@ -18,14 +18,13 @@
 
 void VulkanComputeProgram::setUp(std::string shaderFilePath)
 {
-    shaderFilePath = shaderFilePath;
+    this->shaderFilePath = shaderFilePath;
     createVulkanInstance();
     createDebugMessenger();
     assignPhysicalDevice();
     createLogicalDevice();
     createShaderModule();
     createCommandPool();
-    createCommandBuffer();
     createDescriptorPool();
 }
 
@@ -38,7 +37,6 @@ void VulkanComputeProgram::tearDown()
     destroyPipelineLayout();
     destroyDescriptorSetLayout();
     destroyStorageBuffers();
-    destroyDeviceMemory();
     destroyCommandBuffer();
     destroyCommandPool();
     destroyShaderModule();
@@ -48,28 +46,32 @@ void VulkanComputeProgram::tearDown()
 }
 
 // MARK: - Run
-
+static int count = 0;
 void VulkanComputeProgram::process(ImageInfo imageInfo,
                                    std::function<void(void*)> writeInputPixels,
                                    std::function<void(void*)> readOutputPixels)
 {
+    // TODO: Actual thread safety...
+    if (count > 0) {
+        return;
+    }
+    count++;
+    
     resizeBuffersIfNeeded(imageInfo.size());
-    
-    
     // map input buffer memory and write pixels
     void* inputPixels;
-    vkMapMemory(logicalDevice, deviceMemory, 0, bufferSize, 0, &inputPixels);
+    vkMapMemory(logicalDevice, inputMemory, 0, bufferSize, 0, &inputPixels);
     writeInputPixels(inputPixels);
-    vkUnmapMemory(logicalDevice, deviceMemory);
+    vkUnmapMemory(logicalDevice, inputMemory);
     
     // submit the compute queue and run the shader
     submitComputeQueue();
     
     // map outbut buffer memory and read pixels
     void* outputPixels;
-    vkMapMemory(logicalDevice, deviceMemory, bufferSize, bufferSize, 0, &outputPixels);
+    vkMapMemory(logicalDevice, outputMemory, 0, bufferSize, 0, &outputPixels);
     readOutputPixels(outputPixels);
-    vkUnmapMemory(logicalDevice, deviceMemory);
+    vkUnmapMemory(logicalDevice, outputMemory);
     
 }
 
@@ -80,20 +82,25 @@ void VulkanComputeProgram::resizeBuffersIfNeeded(size_t newBufferSize)
     if (newBufferSize != bufferSize)
     {
         bufferSize = newBufferSize;
+        deviceMemorySize = 2 * bufferSize;
         
         // destroy objects that need to be recreated
+        destroyCommandBuffer();
         destroyPipeline();
         destroyPipelineLayout();
         destroyDescriptorSetLayout();
         destroyStorageBuffers();
-        destroyDeviceMemory();
         
         // recreate objects
-        createDeviceMemory();
         createStorageBuffers();
         createDescriptorSetLayout();
         createPipelineLayout();
         createPipeline();
+        createCommandBuffer();
+        
+        // prepare for computations
+        updateDescriptorSet();
+        recordCommandBuffer();
     }
 }
 
@@ -420,56 +427,14 @@ void VulkanComputeProgram::destroyShaderModule()
 
 // MARK: - Device Memory
 
-void VulkanComputeProgram::createDeviceMemory()
+void createBufferAndMemory(VkPhysicalDevice physicalDevice,
+                           VkDevice logicalDevice,
+                           VkDeviceSize bufferSize,
+                           uint32_t queueFamilyIndex,
+                           VkBuffer& buffer,
+                           VkDeviceMemory& memory)
 {
-    // TODO: Figure out how to do this dynamically and repeatably for different memory sizes.
-    deviceMemorySize = 2 * sizeof(uint32_t) * 1024;
-    VkDeviceSize memorySize = deviceMemorySize;
-    
-    // Fetch device memory properties.
-    VkPhysicalDeviceMemoryProperties memoryProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
-    
-    uint32_t memoryTypeIndex = VK_MAX_MEMORY_TYPES;
-    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
-    {
-        auto memoryType = memoryProperties.memoryTypes[i];
-        
-        if (memoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-            && memoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-            && memorySize <= memoryProperties.memoryHeaps[memoryType.heapIndex].size)
-        {
-            memoryTypeIndex = i;
-        }
-    }
-    
-    if (memoryTypeIndex == VK_MAX_MEMORY_TYPES)
-    {
-        throw std::runtime_error("Failed to find suitable memory!");
-    }
-    
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.pNext = nullptr;
-    allocInfo.allocationSize = memorySize;
-    allocInfo.memoryTypeIndex = memoryTypeIndex;
-    
-    VK_ASSERT_SUCCESS(vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &deviceMemory),
-                      "Failed to allocate device memory!");
-}
-
-void VulkanComputeProgram::destroyDeviceMemory()
-{
-    vkFreeMemory(logicalDevice, deviceMemory, nullptr);
-}
-
-// MARK: - Buffers
-
-void VulkanComputeProgram::createStorageBuffers()
-{
-    // TODO: change this
-    VkDeviceSize bufferSize = deviceMemorySize / 2;
-    
+    // Create buffer
     VkBufferCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     createInfo.pNext = nullptr;
@@ -478,23 +443,71 @@ void VulkanComputeProgram::createStorageBuffers()
     createInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     createInfo.queueFamilyIndexCount = 1;
-    createInfo.pQueueFamilyIndices = &computeQueueFamilyIndex;
+    createInfo.pQueueFamilyIndices = &queueFamilyIndex;
     
-    VK_ASSERT_SUCCESS(vkCreateBuffer(logicalDevice, &createInfo, nullptr, &inputBuffer),
+    VK_ASSERT_SUCCESS(vkCreateBuffer(logicalDevice, &createInfo, nullptr, &buffer),
                       "Failed to create input buffer!");
     
-    vkBindBufferMemory(logicalDevice, inputBuffer, deviceMemory, 0);
+    // Fetch device memory properties.
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
     
-    VK_ASSERT_SUCCESS(vkCreateBuffer(logicalDevice, &createInfo, nullptr, &outputBuffer),
-                      "Failed to create input buffer!");
+    VkDeviceSize memorySize;
+    uint32_t memoryTypeIndex = VK_MAX_MEMORY_TYPES;
+    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
+    {
+        auto memoryType = memoryProperties.memoryTypes[i];
+        auto memoryHeap = memoryProperties.memoryHeaps[memoryType.heapIndex];
+        
+        if (memoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+            && memoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+            && bufferSize <= memoryHeap.size)
+        {
+            memoryTypeIndex = i;
+            memorySize = memoryHeap.size;
+        }
+    }
     
-    vkBindBufferMemory(logicalDevice, outputBuffer, deviceMemory, bufferSize);
+    if (memoryTypeIndex == VK_MAX_MEMORY_TYPES)
+    {
+        throw std::runtime_error("Failed to find suitable memory!");
+    }
+    
+    VkMemoryRequirements memoryRequirements;
+    vkGetBufferMemoryRequirements(logicalDevice, buffer, &memoryRequirements);
+    
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.pNext = nullptr;
+    allocInfo.allocationSize = memoryRequirements.size;
+    allocInfo.memoryTypeIndex = memoryTypeIndex;
+    
+    VK_ASSERT_SUCCESS(vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &memory),
+                      "Failed to allocate device memory!");
+    
+    vkBindBufferMemory(logicalDevice, buffer, memory, 0);
+}
+
+void destroyBufferAndMemory(VkDevice logicalDevice, VkBuffer buffer, VkDeviceMemory memory)
+{
+    vkDestroyBuffer(logicalDevice, buffer, nullptr);
+    vkFreeMemory(logicalDevice, memory, nullptr);
+}
+
+// MARK: - Buffers
+
+void VulkanComputeProgram::createStorageBuffers()
+{
+    createBufferAndMemory(physicalDevice, logicalDevice, bufferSize, computeQueueFamilyIndex, inputBuffer, inputMemory);
+    
+    createBufferAndMemory(physicalDevice, logicalDevice, bufferSize, computeQueueFamilyIndex, outputBuffer, outputMemory);
 }
 
 void VulkanComputeProgram::destroyStorageBuffers()
 {
-    vkDestroyBuffer(logicalDevice, inputBuffer, nullptr);
-    vkDestroyBuffer(logicalDevice, outputBuffer, nullptr);
+    destroyBufferAndMemory(logicalDevice, inputBuffer, inputMemory);
+    
+    destroyBufferAndMemory(logicalDevice, outputBuffer, outputMemory);
 }
 
 // MARK: - Descriptor Set Layout

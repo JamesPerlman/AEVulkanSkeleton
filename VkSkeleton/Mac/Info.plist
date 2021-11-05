@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleExecutable</key>
-	<string>VkSkeleton</string>
+	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.jperl.AfterEffects.VkSkeleton</string>
+	<string>com.jperl.AfterEffects.$(PRODUCT_NAME)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>VkSkeleton</string>
+	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>eFKT</string>
 	<key>CFBundleSignature</key>
@@ -19,6 +19,6 @@
 	<key>NSAppleScriptEnabled</key>
 	<string>No</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>© 1992-2006 Adobe Systems Incorporated</string>
+	<string>© 2021 jperl LLC</string>
 </dict>
 </plist>

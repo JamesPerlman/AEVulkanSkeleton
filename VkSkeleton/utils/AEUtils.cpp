@@ -105,12 +105,12 @@ CopyPixelFloatFromBufferToOutputWorld(void*             refcon,
 }
 
 void AEUtils::copyImageData(AEGP_SuiteHandler&   suites,
-                   PF_InData*           in_data,
-                   PF_PixelFormat       pixelFormat,
-                   PF_EffectWorld*      input_worldP,
-                   PF_EffectWorld*      output_worldP,
-                   CopyCommand          copyCommand,
-                   void*                bufferP)
+                            PF_InData*           in_data,
+                            PF_PixelFormat       pixelFormat,
+                            PF_EffectWorld*      input_worldP,
+                            PF_EffectWorld*      output_worldP,
+                            CopyCommand          copyCommand,
+                            void*                bufferP)
 {
     switch (pixelFormat)
     {
@@ -184,7 +184,7 @@ void AEUtils::copyImageData(AEGP_SuiteHandler&   suites,
             {
                 case CopyCommand::BufferToOutputWorld:
                 {
-                    size_t bufferSize = output_worldP->width * sizeof(PF_Pixel8);
+                    size_t bufferSize = output_worldP->width * output_worldP->height * sizeof(PF_Pixel8);
                     PF_Pixel8* pixelDataStart = NULL;
                     PF_GET_PIXEL_DATA8(output_worldP, NULL, &pixelDataStart);
                     memcpy(pixelDataStart, buffer8P, bufferSize);
@@ -192,13 +192,14 @@ void AEUtils::copyImageData(AEGP_SuiteHandler&   suites,
                 }
                 case CopyCommand::InputWorldToBuffer:
                 {
-                    size_t bufferSize = input_worldP->width * sizeof(PF_Pixel8);
+                    size_t bufferSize = input_worldP->width * input_worldP->height * sizeof(PF_Pixel8);
                     PF_Pixel8* pixelDataStart = NULL;
                     PF_GET_PIXEL_DATA8(input_worldP, NULL, &pixelDataStart);
                     memcpy(buffer8P, pixelDataStart, bufferSize);
                     break;
                 }
             }
+            break;
         }
             
         default:
