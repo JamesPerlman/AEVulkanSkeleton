@@ -9,6 +9,7 @@
 #define VulkanComputeProgram_hpp
 
 #include <functional>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
@@ -28,7 +29,6 @@ public:
                  std::function<void(void*)> readOutputPixels);
     
 private:
-    
     // Persisted objects
     VkInstance                  instance;
     VkDebugUtilsMessengerEXT    debugMessenger;
@@ -39,7 +39,6 @@ private:
     std::string                 shaderFilePath;
     VkShaderModule              shaderModule;
     VkCommandPool               commandPool;
-    VkCommandBuffer             commandBuffer;
     VkDescriptorPool            descriptorPool;
     
     // Ephemeral objects
@@ -52,10 +51,14 @@ private:
     VkDescriptorSetLayout       descriptorSetLayout         = VK_NULL_HANDLE;
     VkPipelineLayout            pipelineLayout              = VK_NULL_HANDLE;
     VkPipeline                  pipeline                    = VK_NULL_HANDLE;
-    VkDescriptorSet             descriptorSet;
+    VkCommandBuffer             commandBuffer               = VK_NULL_HANDLE;
+    VkDescriptorSet             descriptorSet               = VK_NULL_HANDLE;
+    
+    // Synchronization
+    std::mutex textureReadWriteMutex;
     
     // Convenience methods
-    void resizeBuffersIfNeeded(size_t newBufferSize);
+    void regenerateBuffersIfNeeded(ImageInfo imageInfo);
     
     // Object management methods
     void createVulkanInstance();
@@ -75,8 +78,8 @@ private:
     void createCommandPool();
     void destroyCommandPool();
     
-    void createCommandBuffer();
-    void destroyCommandBuffer();
+    void createDescriptorPool();
+    void destroyDescriptorPool();
     
     void createStorageBuffers();
     void destroyStorageBuffers();
@@ -84,14 +87,17 @@ private:
     void createDescriptorSetLayout();
     void destroyDescriptorSetLayout();
     
+    void createDescriptorSet();
+    void destroyDescriptorSet();
+    
     void createPipelineLayout();
     void destroyPipelineLayout();
     
     void createPipeline();
     void destroyPipeline();
     
-    void createDescriptorPool();
-    void destroyDescriptorPool();
+    void createCommandBuffer();
+    void destroyCommandBuffer();
     
     void updateDescriptorSet();
     void recordCommandBuffer();

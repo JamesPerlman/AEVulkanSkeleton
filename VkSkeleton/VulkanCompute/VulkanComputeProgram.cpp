@@ -32,6 +32,7 @@ void VulkanComputeProgram::setUp(std::string shaderFilePath)
 
 void VulkanComputeProgram::tearDown()
 {
+    destroyDescriptorSet();
     destroyDescriptorPool();
     destroyPipeline();
     destroyPipelineLayout();
@@ -46,18 +47,14 @@ void VulkanComputeProgram::tearDown()
 }
 
 // MARK: - Run
-static int count = 0;
 void VulkanComputeProgram::process(ImageInfo imageInfo,
                                    std::function<void(void*)> writeInputPixels,
                                    std::function<void(void*)> readOutputPixels)
 {
-    // TODO: Actual thread safety...
-    if (count > 0) {
-        return;
-    }
-    count++;
+    textureReadWriteMutex.lock();
     
-    resizeBuffersIfNeeded(imageInfo.size());
+    regenerateBuffersIfNeeded(imageInfo);
+    
     // map input buffer memory and write pixels
     void* inputPixels;
     vkMapMemory(logicalDevice, inputMemory, 0, bufferSize, 0, &inputPixels);
@@ -65,7 +62,10 @@ void VulkanComputeProgram::process(ImageInfo imageInfo,
     vkUnmapMemory(logicalDevice, inputMemory);
     
     // submit the compute queue and run the shader
+    createCommandBuffer();
+    recordCommandBuffer();
     submitComputeQueue();
+    destroyCommandBuffer();
     
     // map outbut buffer memory and read pixels
     void* outputPixels;
@@ -73,34 +73,36 @@ void VulkanComputeProgram::process(ImageInfo imageInfo,
     readOutputPixels(outputPixels);
     vkUnmapMemory(logicalDevice, outputMemory);
     
+    textureReadWriteMutex.unlock();
 }
 
 // Set or reset GPU memory if needed
 
-void VulkanComputeProgram::resizeBuffersIfNeeded(size_t newBufferSize)
+void VulkanComputeProgram::regenerateBuffersIfNeeded(ImageInfo imageInfo)
 {
+    auto newBufferSize = imageInfo.size();
+    
     if (newBufferSize != bufferSize)
     {
         bufferSize = newBufferSize;
         deviceMemorySize = 2 * bufferSize;
         
         // destroy objects that need to be recreated
-        destroyCommandBuffer();
         destroyPipeline();
         destroyPipelineLayout();
+        destroyDescriptorSet();
         destroyDescriptorSetLayout();
         destroyStorageBuffers();
         
         // recreate objects
         createStorageBuffers();
         createDescriptorSetLayout();
+        createDescriptorSet();
         createPipelineLayout();
         createPipeline();
-        createCommandBuffer();
         
         // prepare for computations
         updateDescriptorSet();
-        recordCommandBuffer();
     }
 }
 
@@ -391,7 +393,7 @@ void VulkanComputeProgram::createDescriptorPool()
     VkDescriptorPoolCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
     createInfo.pNext = nullptr;
-    createInfo.flags = 0;
+    createInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
     createInfo.maxSets = 1;
     createInfo.poolSizeCount = 1;
     createInfo.pPoolSizes = &poolSize;
@@ -548,6 +550,26 @@ void VulkanComputeProgram::destroyDescriptorSetLayout()
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
 }
 
+// MARK: - Descriptor Set
+
+void VulkanComputeProgram::createDescriptorSet()
+{
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.pNext = nullptr;
+    allocInfo.descriptorPool = descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &descriptorSetLayout;
+    
+    VK_ASSERT_SUCCESS(vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet),
+                      "Failed to allocate descriptor set!");
+}
+
+void VulkanComputeProgram::destroyDescriptorSet()
+{
+    vkFreeDescriptorSets(logicalDevice, descriptorPool, 1, &descriptorSet);
+}
+
 // MARK: - Pipeline Layout
 
 void VulkanComputeProgram::createPipelineLayout()
@@ -604,20 +626,12 @@ void VulkanComputeProgram::destroyPipeline()
     vkDestroyPipeline(logicalDevice, pipeline, nullptr);
 }
 
-// MARK: - Descriptor Sets
+// MARK: - Update Descriptor Set
+
 void VulkanComputeProgram::updateDescriptorSet()
 {
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.pNext = nullptr;
-    allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &descriptorSetLayout;
     
-    VK_ASSERT_SUCCESS(vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet),
-                      "Failed to allocate descriptor set!");
-    
-    // Now we need to update the descriptor sets with input/output buffer info
+    // update the descriptor sets with input/output buffer info
     
     // Input
     
