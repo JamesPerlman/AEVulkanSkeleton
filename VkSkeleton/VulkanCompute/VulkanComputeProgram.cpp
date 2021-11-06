@@ -80,12 +80,9 @@ void VulkanComputeProgram::process(ImageInfo imageInfo,
 
 void VulkanComputeProgram::regenerateBuffersIfNeeded(ImageInfo imageInfo)
 {
-    auto newBufferSize = imageInfo.size();
-    
-    if (newBufferSize != bufferSize)
+    if (imageInfo.size() != bufferSize)
     {
-        bufferSize = newBufferSize;
-        deviceMemorySize = 2 * bufferSize;
+        bufferSize = imageInfo.size();
         
         // destroy objects that need to be recreated
         destroyPipeline();

@@ -205,7 +205,7 @@ SmartRender(
         sliderVal = slider_param.u.fd.value / 100.0f;
     }
     
-    ERR((extra->cb->checkout_layer_pixels(in_data->effect_ref, VKSKELETON_INPUT, &input_worldP)));
+    ERR(extra->cb->checkout_layer_pixels(in_data->effect_ref, VKSKELETON_INPUT, &input_worldP));
     
     ERR(extra->cb->checkout_output(in_data->effect_ref, &output_worldP));
     

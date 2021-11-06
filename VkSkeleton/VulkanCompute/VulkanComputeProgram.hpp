@@ -43,7 +43,6 @@ private:
     
     // Ephemeral objects
     size_t                      bufferSize                  = 0;
-    size_t                      deviceMemorySize            = 0;
     VkBuffer                    inputBuffer                 = VK_NULL_HANDLE;
     VkDeviceMemory              inputMemory                 = VK_NULL_HANDLE;
     VkBuffer                    outputBuffer                = VK_NULL_HANDLE;
