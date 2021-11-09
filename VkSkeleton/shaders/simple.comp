@@ -1,16 +1,14 @@
 #version 450
 
-layout (set = 0, binding = 0) readonly buffer InputBuffer {
-    uint data[];
-} inputBuffer;
+layout (set = 0, binding = 0) uniform sampler2D inputSampler;
 
-layout (set = 0, binding = 1) buffer OutputBuffer {
-    uint data[];
-} outputBuffer;
+layout (set = 0, binding = 1) writeonly uniform image2D outputImage;
 
 void main()
 {
-    uint gID = 32 * gl_GlobalInvocationID.x + gl_GlobalInvocationID.y;
+    vec2 uv = gl_GlobalInvocationID.xy / gl_WorkGroupSize.xy;
+
+    vec4 color = texture(inputSampler, uv);
     
-    outputBuffer.data[gID] = inputBuffer.data[gID];
+    imageStore(outputImage, ivec2(gl_GlobalInvocationID.xy), color);
 }

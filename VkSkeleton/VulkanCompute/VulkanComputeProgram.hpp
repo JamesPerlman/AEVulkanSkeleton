@@ -40,13 +40,16 @@ private:
     VkShaderModule              shaderModule;
     VkCommandPool               commandPool;
     VkDescriptorPool            descriptorPool;
+    VkSampler                   inputSampler;
+    VkSampler                   outputSampler;
     
     // Ephemeral objects
-    size_t                      bufferSize                  = 0;
-    VkBuffer                    inputBuffer                 = VK_NULL_HANDLE;
-    VkDeviceMemory              inputMemory                 = VK_NULL_HANDLE;
-    VkBuffer                    outputBuffer                = VK_NULL_HANDLE;
-    VkDeviceMemory              outputMemory                = VK_NULL_HANDLE;
+    VkImage                     inputImage                  = VK_NULL_HANDLE;
+    VkDeviceMemory              inputImageMemory            = VK_NULL_HANDLE;
+    VkImageView                 inputImageView              = VK_NULL_HANDLE;
+    VkImage                     outputImage                 = VK_NULL_HANDLE;
+    VkDeviceMemory              outputImageMemory           = VK_NULL_HANDLE;
+    VkImageView                 outputImageView             = VK_NULL_HANDLE;
     VkDescriptorSetLayout       descriptorSetLayout         = VK_NULL_HANDLE;
     VkPipelineLayout            pipelineLayout              = VK_NULL_HANDLE;
     VkPipeline                  pipeline                    = VK_NULL_HANDLE;
@@ -55,6 +58,9 @@ private:
     
     // Synchronization
     std::mutex textureReadWriteMutex;
+    
+    // Image Info
+    ImageInfo imageInfo;
     
     // Convenience methods
     void regenerateBuffersIfNeeded(ImageInfo imageInfo);
@@ -80,8 +86,19 @@ private:
     void createDescriptorPool();
     void destroyDescriptorPool();
     
-    void createStorageBuffers();
-    void destroyStorageBuffers();
+    void createSamplers();
+    void destroySamplers();
+    
+    void createImages();
+    void destroyImages();
+    
+    void createImageMemory();
+    void destroyImageMemory();
+    
+    void bindImageMemory();
+    
+    void createImageViews();
+    void destroyImageViews();
     
     void createDescriptorSetLayout();
     void destroyDescriptorSetLayout();
