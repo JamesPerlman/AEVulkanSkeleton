@@ -11,8 +11,8 @@
 #include <map>
 
 enum PixelFormat : size_t {
-    ARGB128 = 32,
-    ARGB64  = 16,
+    ARGB128 = 16,
+    ARGB64  = 8,
     ARGB32  = 4,
 };
 

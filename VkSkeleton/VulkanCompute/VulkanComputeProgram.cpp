@@ -26,6 +26,7 @@ void VulkanComputeProgram::setUp(std::string shaderFilePath)
     createShaderModule();
     createCommandPool();
     createDescriptorPool();
+    createSamplers();
 }
 
 // MARK: - Destructor
@@ -40,6 +41,7 @@ void VulkanComputeProgram::tearDown()
     destroyImageMemory();
     destroyImages();
     destroyCommandBuffer();
+    destroySamplers();
     destroyDescriptorPool();
     destroyCommandPool();
     destroyShaderModule();
@@ -590,11 +592,11 @@ VkFormat getImageFormat(ImageInfo imageInfo)
     switch (imageInfo.pixelFormat)
     {
         case PixelFormat::ARGB32:
-            return VK_FORMAT_R8G8B8A8_UINT;
+            return VK_FORMAT_R8G8B8A8_SNORM;
         case PixelFormat::ARGB64:
-            return VK_FORMAT_R16G16B16A16_UINT;
+            return VK_FORMAT_R16G16B16A16_SFLOAT;
         case PixelFormat::ARGB128:
-            return VK_FORMAT_R32G32B32A32_UINT;
+            return VK_FORMAT_R32G32B32A32_SFLOAT;
     }
 }
 
@@ -611,10 +613,8 @@ VkExtent3D getImageExtent(ImageInfo imageInfo)
 void createImage(VkDevice logicalDevice,
                  ImageInfo imageInfo,
                  VkImageUsageFlags usageFlags,
-                 uint32_t queueFamilyIndex,
                  VkImage& image)
 {
-    
     // fetch some image properties
     auto imageFormat = getImageFormat(imageInfo);
     auto imageExtent = getImageExtent(imageInfo);
@@ -630,11 +630,11 @@ void createImage(VkDevice logicalDevice,
     createInfo.mipLevels = 1;
     createInfo.arrayLayers = 1;
     createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    createInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    createInfo.tiling = VK_IMAGE_TILING_LINEAR;
     createInfo.usage = usageFlags;
     createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    createInfo.queueFamilyIndexCount = 1;
-    createInfo.pQueueFamilyIndices = &queueFamilyIndex;
+    createInfo.queueFamilyIndexCount = 0;
+    createInfo.pQueueFamilyIndices = nullptr;
     createInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
     
     VK_ASSERT_SUCCESS(vkCreateImage(logicalDevice, &createInfo, nullptr, &image),
@@ -646,10 +646,10 @@ void createImage(VkDevice logicalDevice,
 void VulkanComputeProgram::createImages()
 {
     // create input image
-    createImage(logicalDevice, imageInfo, VK_IMAGE_USAGE_SAMPLED_BIT, computeQueueFamilyIndex, inputImage);
+    createImage(logicalDevice, imageInfo, VK_IMAGE_USAGE_SAMPLED_BIT, inputImage);
     
     // create output image
-    createImage(logicalDevice, imageInfo, VK_IMAGE_USAGE_STORAGE_BIT, computeQueueFamilyIndex, outputImage);
+    createImage(logicalDevice, imageInfo, VK_IMAGE_USAGE_STORAGE_BIT, outputImage);
 }
 
 void VulkanComputeProgram::destroyImages()
@@ -675,7 +675,6 @@ void allocateImageMemory(VkPhysicalDevice physicalDevice,
     
     VkPhysicalDeviceMemoryProperties memoryProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
-    
     VkDeviceSize availableMemorySize;
     uint32_t memoryTypeIndex = VK_MAX_MEMORY_TYPES;
     
@@ -690,6 +689,7 @@ void allocateImageMemory(VkPhysicalDevice physicalDevice,
         {
             memoryTypeIndex = i;
             availableMemorySize = memoryHeap.size;
+            break;
         }
     }
     
@@ -912,7 +912,7 @@ void VulkanComputeProgram::updateDescriptorSet()
     inputWriteDescriptorSet.dstBinding = 0;
     inputWriteDescriptorSet.dstArrayElement = 0;
     inputWriteDescriptorSet.descriptorCount = 1;
-    inputWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    inputWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     inputWriteDescriptorSet.pImageInfo = &inputImageInfo;
     inputWriteDescriptorSet.pBufferInfo = nullptr;
     inputWriteDescriptorSet.pTexelBufferView = nullptr;
