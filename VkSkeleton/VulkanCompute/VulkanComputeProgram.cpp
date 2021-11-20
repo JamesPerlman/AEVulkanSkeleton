@@ -350,6 +350,7 @@ void VulkanComputeProgram::createLogicalDevice()
     deviceQueueCreateInfo.pQueuePriorities = &queuePriority;
     
     VkPhysicalDeviceFeatures deviceFeatures{};
+    deviceFeatures.shaderStorageImageWriteWithoutFormat = VK_TRUE;
     
     VkDeviceCreateInfo deviceCreateInfo{};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
