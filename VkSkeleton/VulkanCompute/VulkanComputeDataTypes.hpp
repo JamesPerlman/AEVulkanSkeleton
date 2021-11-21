@@ -9,6 +9,7 @@
 #define VulkanComputeDataTypes_h
 
 #include <map>
+#include <vulkan/vulkan.h>
 
 enum PixelFormat : size_t {
     ARGB128 = 16,
@@ -24,6 +25,12 @@ struct ImageInfo {
     size_t size() {
         return static_cast<size_t>(pixelFormat) * static_cast<size_t>(width * height);
     }
+};
+
+struct ImageLayoutTransitionInfo {
+    VkImageLayout oldLayout, newLayout;
+    VkAccessFlags srcAccessMask, dstAccessMask;
+    VkPipelineStageFlags srcStageMask, dstStageMask;
 };
 
 #endif /* VulkanComputeDataTypes_h */
