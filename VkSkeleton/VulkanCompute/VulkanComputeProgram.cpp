@@ -151,21 +151,23 @@ void VulkanComputeProgram::createVulkanInstance()
         throw std::runtime_error("Validation layers requested, but not available!");
     }
     
-    VkApplicationInfo appInfo{};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "Hello Triangle";
-    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "No Engine";
-    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
+    VkApplicationInfo appInfo {
+        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pApplicationName = "Hello Triangle",
+        .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+        .pEngineName = "No Engine",
+        .engineVersion = VK_MAKE_VERSION(1, 0, 0),
+        .apiVersion = VK_API_VERSION_1_0,
+    };
     
     auto requiredExtensionNames = getRequiredInstanceExtensionNames();
     
-    VkInstanceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    createInfo.pApplicationInfo = &appInfo;
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensionNames.size());
-    createInfo.ppEnabledExtensionNames = requiredExtensionNames.data();
+    VkInstanceCreateInfo createInfo {
+        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        .pApplicationInfo = &appInfo,
+        .enabledExtensionCount = static_cast<uint32_t>(requiredExtensionNames.size()),
+        .ppEnabledExtensionNames = requiredExtensionNames.data(),
+    };
     
     // Add a debugger to the instance, if enabled.
     auto debugCreateInfo = VulkanDebugUtils::getDebugMessengerCreateInfo();
@@ -328,22 +330,25 @@ void VulkanComputeProgram::createLogicalDevice()
 {
     float queuePriority = 1.0f;
     
-    VkDeviceQueueCreateInfo deviceQueueCreateInfo{};
-    deviceQueueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    deviceQueueCreateInfo.queueFamilyIndex = computeQueueFamilyIndex;
-    deviceQueueCreateInfo.queueCount = 1;
-    deviceQueueCreateInfo.pQueuePriorities = &queuePriority;
+    VkDeviceQueueCreateInfo deviceQueueCreateInfo {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .queueFamilyIndex = computeQueueFamilyIndex,
+        .queueCount = 1,
+        .pQueuePriorities = &queuePriority,
+    };
     
-    VkPhysicalDeviceFeatures deviceFeatures{};
-    deviceFeatures.shaderStorageImageWriteWithoutFormat = VK_TRUE;
+    VkPhysicalDeviceFeatures deviceFeatures {
+        .shaderStorageImageWriteWithoutFormat = VK_TRUE,
+    };
     
-    VkDeviceCreateInfo deviceCreateInfo{};
-    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
-    deviceCreateInfo.queueCreateInfoCount = 1;
-    deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
-    deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-    deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    VkDeviceCreateInfo deviceCreateInfo {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .pQueueCreateInfos = &deviceQueueCreateInfo,
+        .queueCreateInfoCount = 1,
+        .pEnabledFeatures = &deviceFeatures,
+        .enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()),
+        .ppEnabledExtensionNames = deviceExtensions.data(),
+    };
     
     if (VulkanDebugUtils::isValidationEnabled())
     {
@@ -369,11 +374,12 @@ void VulkanComputeProgram::destroyLogicalDevice()
 
 void VulkanComputeProgram::createCommandPool()
 {
-    VkCommandPoolCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    createInfo.pNext = nullptr;
-    createInfo.flags = 0;
-    createInfo.queueFamilyIndex = computeQueueFamilyIndex;
+    VkCommandPoolCreateInfo createInfo {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .queueFamilyIndex = computeQueueFamilyIndex,
+    };
     
     VK_ASSERT_SUCCESS(vkCreateCommandPool(logicalDevice, &createInfo, nullptr, &commandPool),
                       "Failed to create command pool!");
@@ -387,26 +393,29 @@ void VulkanComputeProgram::destroyCommandPool()
 // MARK: - Descriptor Pools
 void VulkanComputeProgram::createDescriptorPool()
 {
-    VkDescriptorPoolSize inputPoolSize{};
-    inputPoolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    inputPoolSize.descriptorCount = 1;
+    VkDescriptorPoolSize inputPoolSize {
+        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .descriptorCount = 1,
+    };
     
-    VkDescriptorPoolSize outputPoolSize{};
-    outputPoolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    outputPoolSize.descriptorCount = 1;
+    VkDescriptorPoolSize outputPoolSize {
+        .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        .descriptorCount = 1,
+    };
     
     VkDescriptorPoolSize poolSizes[2] = {
         inputPoolSize,
         outputPoolSize,
     };
     
-    VkDescriptorPoolCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    createInfo.pNext = nullptr;
-    createInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    createInfo.maxSets = 1;
-    createInfo.poolSizeCount = 2;
-    createInfo.pPoolSizes = poolSizes;
+    VkDescriptorPoolCreateInfo createInfo {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+        .maxSets = 1,
+        .poolSizeCount = 2,
+        .pPoolSizes = poolSizes,
+    };
     
     VK_ASSERT_SUCCESS(vkCreateDescriptorPool(logicalDevice, &createInfo, nullptr, &descriptorPool),
                       "Failed to create descriptor pool!");
@@ -421,25 +430,26 @@ void VulkanComputeProgram::destroyDescriptorPool()
 
 void createSampler(VkDevice logicalDevice, VkFilter filter, VkSampler& sampler)
 {
-    VkSamplerCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    createInfo.pNext = nullptr;
-    createInfo.flags = 0;
-    createInfo.magFilter = filter;
-    createInfo.minFilter = filter;
-    createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    createInfo.mipLodBias = 0.0f;
-    createInfo.anisotropyEnable = VK_FALSE;
-    createInfo.maxAnisotropy = 1.0f;
-    createInfo.compareEnable = VK_FALSE;
-    createInfo.compareOp = VK_COMPARE_OP_NEVER;
-    createInfo.minLod = 0.0f;
-    createInfo.maxLod = 0.0f;
-    createInfo.borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
-    createInfo.unnormalizedCoordinates = VK_FALSE;
+    VkSamplerCreateInfo createInfo {
+        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .magFilter = filter,
+        .minFilter = filter,
+        .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+        .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+        .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+        .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+        .mipLodBias = 0.0f,
+        .anisotropyEnable = VK_FALSE,
+        .maxAnisotropy = 1.0f,
+        .compareEnable = VK_FALSE,
+        .compareOp = VK_COMPARE_OP_NEVER,
+        .minLod = 0.0f,
+        .maxLod = 0.0f,
+        .borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK,
+        .unnormalizedCoordinates = VK_FALSE,
+    };
     
     VK_ASSERT_SUCCESS(vkCreateSampler(logicalDevice, &createInfo, nullptr, &sampler),
                       "Failed to create sampler!");
@@ -463,10 +473,11 @@ void VulkanComputeProgram::destroySamplers()
 void VulkanComputeProgram::createShaderModule()
 {
     auto computeShaderCode = FileUtils::readFile(shaderFilePath);
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = computeShaderCode.size();
-    createInfo.pCode = reinterpret_cast<const uint32_t*>(computeShaderCode.data());
+    VkShaderModuleCreateInfo createInfo {
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .codeSize = computeShaderCode.size(),
+        .pCode = reinterpret_cast<const uint32_t*>(computeShaderCode.data()),
+    };
     
     VK_ASSERT_SUCCESS(vkCreateShaderModule(logicalDevice, &createInfo, nullptr, &shaderModule),
                       "Failed to create shader module!");
@@ -628,19 +639,16 @@ VkFormat getImageFormat(ImageInfo imageInfo)
 
 VkExtent3D getImageExtent(ImageInfo imageInfo)
 {
-    VkExtent3D extent{};
-    extent.width = imageInfo.width;
-    extent.height = imageInfo.height;
-    extent.depth = 1;
-    
-    return extent;
+    return {
+        .width = imageInfo.width,
+        .height = imageInfo.height,
+        .depth = 1,
+    };
 }
 
 void createImage(VkDevice logicalDevice,
                  ImageInfo imageInfo,
                  VkImageUsageFlags usageFlags,
-                 VkImageLayout imageLayout,
-                 VkImageTiling imageTiling,
                  VkImage& image)
 {
     // fetch some image properties
@@ -648,22 +656,23 @@ void createImage(VkDevice logicalDevice,
     auto imageExtent = getImageExtent(imageInfo);
     
     // Create buffer
-    VkImageCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    createInfo.pNext = nullptr;
-    createInfo.flags = 0;
-    createInfo.imageType = VK_IMAGE_TYPE_2D;
-    createInfo.format = imageFormat;
-    createInfo.extent = imageExtent;
-    createInfo.mipLevels = 1;
-    createInfo.arrayLayers = 1;
-    createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    createInfo.tiling = imageTiling;
-    createInfo.usage = usageFlags;
-    createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    createInfo.queueFamilyIndexCount = 0;
-    createInfo.pQueueFamilyIndices = nullptr;
-    createInfo.initialLayout = imageLayout;
+    VkImageCreateInfo createInfo {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = imageFormat,
+        .extent = imageExtent,
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage = usageFlags,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    };
     
     VK_ASSERT_SUCCESS(vkCreateImage(logicalDevice, &createInfo, nullptr, &image),
                       "Failed to create image!");
@@ -675,16 +684,12 @@ void VulkanComputeProgram::createImages()
     createImage(logicalDevice,
                 imageInfo,
                 VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_TILING_OPTIMAL,
                 inputImage);
     
     // create output image
     createImage(logicalDevice,
                 imageInfo,
                 VK_IMAGE_USAGE_STORAGE_BIT,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_TILING_OPTIMAL,
                 outputImage);
 }
 
@@ -733,11 +738,12 @@ void allocateImageMemory(VkPhysicalDevice physicalDevice,
         throw std::runtime_error("Failed to find suitable memory!");
     }
     
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.pNext = nullptr;
-    allocInfo.allocationSize = memoryRequirements.size;
-    allocInfo.memoryTypeIndex = memoryTypeIndex;
+    VkMemoryAllocateInfo allocInfo {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .allocationSize = memoryRequirements.size,
+        .memoryTypeIndex = memoryTypeIndex,
+    };
     
     VK_ASSERT_SUCCESS(vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &memory),
                       "Failed to allocate device memory!");
@@ -768,29 +774,28 @@ void VulkanComputeProgram::bindImageMemory()
 // MARK: - Image Views
 void createImageView(VkDevice logicalDevice, VkFormat format, VkImage& image, VkImageView& imageView)
 {
-    // TODO: We probably need to swizzle this because AE might use ARGB while Vulkan uses RGBA
-    VkComponentMapping componentMapping{};
-    componentMapping.a = VK_COMPONENT_SWIZZLE_A;
-    componentMapping.r = VK_COMPONENT_SWIZZLE_R;
-    componentMapping.g = VK_COMPONENT_SWIZZLE_G;
-    componentMapping.b = VK_COMPONENT_SWIZZLE_B;
-    
-    VkImageSubresourceRange subresourceRange{};
-    subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-    subresourceRange.baseMipLevel   = 0;
-    subresourceRange.levelCount     = 1;
-    subresourceRange.baseArrayLayer = 0;
-    subresourceRange.layerCount     = 1;
-    
-    VkImageViewCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    createInfo.pNext = nullptr;
-    createInfo.flags = 0;
-    createInfo.image = image;
-    createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    createInfo.format = format;
-    createInfo.components = componentMapping;
-    createInfo.subresourceRange = subresourceRange;
+    VkImageViewCreateInfo createInfo {
+        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        createInfo.pNext = nullptr,
+        createInfo.flags = 0,
+        createInfo.image = image,
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D,
+        createInfo.format = format,
+        createInfo.components = {
+            // TODO: We might need to swizzle
+            .a = VK_COMPONENT_SWIZZLE_A,
+            .r = VK_COMPONENT_SWIZZLE_R,
+            .g = VK_COMPONENT_SWIZZLE_G,
+            .b = VK_COMPONENT_SWIZZLE_B,
+        },
+        createInfo.subresourceRange = {
+            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel   = 0,
+            .levelCount     = 1,
+            .baseArrayLayer = 0,
+            .layerCount     = 1,
+        },
+    };
     
     VK_ASSERT_SUCCESS(vkCreateImageView(logicalDevice, &createInfo, nullptr, &imageView),
                       "Failed to create image view!");
@@ -813,31 +818,34 @@ void VulkanComputeProgram::destroyImageViews()
 // MARK: - Descriptor Set Layout
 void VulkanComputeProgram::createDescriptorSetLayout()
 {
-    VkDescriptorSetLayoutBinding inputLayoutBinding{};
-    inputLayoutBinding.binding = 0;
-    inputLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    inputLayoutBinding.descriptorCount = 1;
-    inputLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    inputLayoutBinding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayoutBinding inputLayoutBinding {
+        .binding = 0,
+        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .descriptorCount = 1,
+        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+        .pImmutableSamplers = nullptr,
+    };
     
-    VkDescriptorSetLayoutBinding outputLayoutBinding{};
-    outputLayoutBinding.binding = 1;
-    outputLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    outputLayoutBinding.descriptorCount = 1;
-    outputLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    outputLayoutBinding.pImmutableSamplers = nullptr;
+    VkDescriptorSetLayoutBinding outputLayoutBinding {
+        .binding = 1,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        .descriptorCount = 1,
+        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+        .pImmutableSamplers = nullptr,
+    };
     
     VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[2] = {
         inputLayoutBinding,
         outputLayoutBinding,
     };
     
-    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
-    descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    descriptorSetLayoutCreateInfo.pNext = nullptr;
-    descriptorSetLayoutCreateInfo.flags = 0;
-    descriptorSetLayoutCreateInfo.bindingCount = 2;
-    descriptorSetLayoutCreateInfo.pBindings = descriptorSetLayoutBindings;
+    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .bindingCount = 2,
+        .pBindings = descriptorSetLayoutBindings,
+    };
     
     VK_ASSERT_SUCCESS(vkCreateDescriptorSetLayout(logicalDevice, &descriptorSetLayoutCreateInfo, nullptr, &descriptorSetLayout),
                       "Failed to create descriptor set layout!");
@@ -852,12 +860,13 @@ void VulkanComputeProgram::destroyDescriptorSetLayout()
 
 void VulkanComputeProgram::createDescriptorSet()
 {
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.pNext = nullptr;
-    allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &descriptorSetLayout;
+    VkDescriptorSetAllocateInfo allocInfo {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .descriptorPool = descriptorPool,
+        .descriptorSetCount = 1,
+        .pSetLayouts = &descriptorSetLayout,
+    };
     
     VK_ASSERT_SUCCESS(vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet),
                       "Failed to allocate descriptor set!");
@@ -873,14 +882,15 @@ void VulkanComputeProgram::destroyDescriptorSet()
 void VulkanComputeProgram::createPipelineLayout()
 {
     // Create pipeline layout
-    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
-    pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutCreateInfo.pNext = nullptr;
-    pipelineLayoutCreateInfo.flags = 0;
-    pipelineLayoutCreateInfo.setLayoutCount = 1;
-    pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
-    pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-    pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
+    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .setLayoutCount = 1,
+        .pSetLayouts = &descriptorSetLayout,
+        .pushConstantRangeCount = 0,
+        .pPushConstantRanges = nullptr,
+    };
     
     VK_ASSERT_SUCCESS(vkCreatePipelineLayout(logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout),
                       "Failed to create pipeline layout!");
@@ -896,24 +906,26 @@ void VulkanComputeProgram::destroyPipelineLayout()
 void VulkanComputeProgram::createPipeline()
 {
     // Create shader stage
-    VkPipelineShaderStageCreateInfo pipelineShaderStageCreateInfo{};
-    pipelineShaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    pipelineShaderStageCreateInfo.pNext = nullptr;
-    pipelineShaderStageCreateInfo.flags = 0;
-    pipelineShaderStageCreateInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    pipelineShaderStageCreateInfo.module = shaderModule;
-    pipelineShaderStageCreateInfo.pName = "main";
-    pipelineShaderStageCreateInfo.pSpecializationInfo = nullptr;
+    VkPipelineShaderStageCreateInfo pipelineShaderStageCreateInfo {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+        .module = shaderModule,
+        .pName = "main",
+        .pSpecializationInfo = nullptr,
+    };
     
     // Create pipeline
-    VkComputePipelineCreateInfo pipelineCreateInfo{};
-    pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    pipelineCreateInfo.pNext = nullptr;
-    pipelineCreateInfo.flags = 0;
-    pipelineCreateInfo.stage = pipelineShaderStageCreateInfo;
-    pipelineCreateInfo.layout = pipelineLayout;
-    pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-    pipelineCreateInfo.basePipelineIndex = 0;
+    VkComputePipelineCreateInfo pipelineCreateInfo {
+        .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .stage = pipelineShaderStageCreateInfo,
+        .layout = pipelineLayout,
+        .basePipelineHandle = VK_NULL_HANDLE,
+        .basePipelineIndex = 0,
+    };
     
     VK_ASSERT_SUCCESS(vkCreateComputePipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &pipeline),
                       "Failed to create compute pipeline!");
@@ -929,24 +941,24 @@ void VulkanComputeProgram::destroyPipeline()
 void VulkanComputeProgram::transitionImageLayout(VkImage& image, ImageLayoutTransitionInfo transitionInfo)
 {
     submitComputeQueue([&](VkCommandBuffer& commandBuffer) {
-        VkImageSubresourceRange subresourceRange{};
-        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        subresourceRange.baseMipLevel = 0;
-        subresourceRange.levelCount = 1;
-        subresourceRange.baseArrayLayer = 0;
-        subresourceRange.layerCount = 1;
-        
-        VkImageMemoryBarrier barrier{};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.pNext = nullptr;
-        barrier.srcAccessMask = transitionInfo.srcAccessMask;
-        barrier.dstAccessMask = transitionInfo.dstAccessMask;
-        barrier.oldLayout = transitionInfo.oldLayout;
-        barrier.newLayout = transitionInfo.newLayout;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = image;
-        barrier.subresourceRange = subresourceRange;
+        VkImageMemoryBarrier barrier {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .pNext = nullptr,
+            .srcAccessMask = transitionInfo.srcAccessMask,
+            .dstAccessMask = transitionInfo.dstAccessMask,
+            .oldLayout = transitionInfo.oldLayout,
+            .newLayout = transitionInfo.newLayout,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = image,
+            .subresourceRange = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+        };
         
         vkCmdPipelineBarrier(commandBuffer,
                              transitionInfo.srcStageMask,
@@ -1088,41 +1100,45 @@ void VulkanComputeProgram::updateDescriptorSet()
     
     // Input
     
-    VkDescriptorImageInfo inputImageInfo{};
-    inputImageInfo.sampler = inputSampler;
-    inputImageInfo.imageView = inputImageView;
-    inputImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    VkDescriptorImageInfo inputImageInfo {
+        .sampler = inputSampler,
+        .imageView = inputImageView,
+        .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    };
     
-    VkWriteDescriptorSet inputWriteDescriptorSet{};
-    inputWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    inputWriteDescriptorSet.pNext = nullptr;
-    inputWriteDescriptorSet.dstSet = descriptorSet;
-    inputWriteDescriptorSet.dstBinding = 0;
-    inputWriteDescriptorSet.dstArrayElement = 0;
-    inputWriteDescriptorSet.descriptorCount = 1;
-    inputWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    inputWriteDescriptorSet.pImageInfo = &inputImageInfo;
-    inputWriteDescriptorSet.pBufferInfo = nullptr;
-    inputWriteDescriptorSet.pTexelBufferView = nullptr;
+    VkWriteDescriptorSet inputWriteDescriptorSet {
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .pNext = nullptr,
+        .dstSet = descriptorSet,
+        .dstBinding = 0,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        .pImageInfo = &inputImageInfo,
+        .pBufferInfo = nullptr,
+        .pTexelBufferView = nullptr,
+    };
     
     // Output
     
-    VkDescriptorImageInfo outputImageInfo{};
-    outputImageInfo.sampler = outputSampler;
-    outputImageInfo.imageView = outputImageView;
-    outputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    VkDescriptorImageInfo outputImageInfo {
+        .sampler = outputSampler,
+        .imageView = outputImageView,
+        .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+    };
     
-    VkWriteDescriptorSet outputWriteDescriptorSet{};
-    outputWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    outputWriteDescriptorSet.pNext = nullptr;
-    outputWriteDescriptorSet.dstSet = descriptorSet;
-    outputWriteDescriptorSet.dstBinding = 1;
-    outputWriteDescriptorSet.dstArrayElement = 0;
-    outputWriteDescriptorSet.descriptorCount = 1;
-    outputWriteDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    outputWriteDescriptorSet.pImageInfo = &outputImageInfo;
-    outputWriteDescriptorSet.pBufferInfo = nullptr;
-    outputWriteDescriptorSet.pTexelBufferView = nullptr;
+    VkWriteDescriptorSet outputWriteDescriptorSet {
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .pNext = nullptr,
+        .dstSet = descriptorSet,
+        .dstBinding = 1,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        .pImageInfo = &outputImageInfo,
+        .pBufferInfo = nullptr,
+        .pTexelBufferView = nullptr,
+    };
     
     VkWriteDescriptorSet writeDescriptorSet[2] = {
         inputWriteDescriptorSet,
@@ -1137,12 +1153,13 @@ void VulkanComputeProgram::updateDescriptorSet()
 
 VkCommandBuffer createCommandBuffer(VkDevice& logicalDevice, VkCommandPool& commandPool)
 {
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.pNext = nullptr;
-    allocInfo.commandPool = commandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = 1;
+    VkCommandBufferAllocateInfo allocInfo {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .commandPool = commandPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .commandBufferCount = 1,
+    };
     
     VkCommandBuffer commandBuffer;
     VK_ASSERT_SUCCESS(vkAllocateCommandBuffers(logicalDevice, &allocInfo, &commandBuffer),
@@ -1162,11 +1179,12 @@ void VulkanComputeProgram::submitComputeQueue(std::function<void(VkCommandBuffer
     
     // Begin, record, and end command buffer.
     
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.pNext = nullptr;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    beginInfo.pInheritanceInfo = nullptr;
+    VkCommandBufferBeginInfo beginInfo {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .pNext = nullptr,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        .pInheritanceInfo = nullptr,
+    };
     
     VK_ASSERT_SUCCESS(vkBeginCommandBuffer(commandBuffer, &beginInfo),
                       "Failed to begin command buffer!");
@@ -1179,16 +1197,17 @@ void VulkanComputeProgram::submitComputeQueue(std::function<void(VkCommandBuffer
     // Submit compute queue
     
     // TODO: Use semaphores and fences
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.pNext = nullptr;
-    submitInfo.waitSemaphoreCount = 0;
-    submitInfo.pWaitSemaphores = nullptr;
-    submitInfo.pWaitDstStageMask = nullptr;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-    submitInfo.signalSemaphoreCount = 0;
-    submitInfo.pSignalSemaphores = nullptr;
+    VkSubmitInfo submitInfo {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pNext = nullptr,
+        .waitSemaphoreCount = 0,
+        .pWaitSemaphores = nullptr,
+        .pWaitDstStageMask = nullptr,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &commandBuffer,
+        .signalSemaphoreCount = 0,
+        .pSignalSemaphores = nullptr,
+    };
     
     VK_ASSERT_SUCCESS(vkQueueSubmit(computeQueue, 1, &submitInfo, VK_NULL_HANDLE),
                       "Failed to submit compute queue!");
