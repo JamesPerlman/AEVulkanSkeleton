@@ -40,7 +40,6 @@ void VulkanComputeProgram::tearDown()
     destroyImageViews();
     destroyImageMemory();
     destroyImages();
-    destroyCommandBuffer();
     destroySamplers();
     destroyDescriptorPool();
     destroyCommandPool();
@@ -52,31 +51,8 @@ void VulkanComputeProgram::tearDown()
 
 // MARK: - Run
 
-/*
- A good algoritm is going to be multi-threaded.
- 
- The VulkanComputeProgram has multiple distinct sets of structures.
- 
- Once-per-instance - Logical Device, Physical Device, Vulkan Instance, Debug Messenger, Shader Module
- 
- Once-per-thread - Command Pool, Descriptor Pool
- 
- Recreate on buffer size change - Pipeline, descriptors, buffers / images, command buffer
- 
- computeChains {
-    "${width}x${height}" : [{
-        pipeline,
-        descriptors,
-        buffers,
-        lastUsed: date (ns)
-    }]
- }
- 
- When running the `process` method,
- 1. query computeChains by width x height
- 2.
- 
- */
+// TODO: Multi-thread the crap outta this.
+
 void VulkanComputeProgram::process(ImageInfo imageInfo,
                                    std::function<void(void*)> writeInputPixels,
                                    std::function<void(void*)> readOutputPixels)
@@ -87,23 +63,24 @@ void VulkanComputeProgram::process(ImageInfo imageInfo,
     
     auto imageSize = imageInfo.size();
     
-    // map input buffer memory and write pixels
+    // write input image memory
     void* inputPixels;
-    vkMapMemory(logicalDevice, inputImageMemory, 0, imageSize, 0, &inputPixels);
+    vkMapMemory(logicalDevice, inputBufferMemory, 0, imageSize, 0, &inputPixels);
     writeInputPixels(inputPixels);
-    vkUnmapMemory(logicalDevice, inputImageMemory);
+    vkUnmapMemory(logicalDevice, inputBufferMemory);
+    
+    copyInputBufferToImage();
     
     // submit the compute queue and run the shader
-    createCommandBuffer();
-    recordCommandBuffer();
-    submitComputeQueue();
-    destroyCommandBuffer();
+    executeShader();
+    
+    copyOutputImageToBuffer();
     
     // map outbut buffer memory and read pixels
     void* outputPixels;
-    vkMapMemory(logicalDevice, outputImageMemory, 0, imageSize, 0, &outputPixels);
+    vkMapMemory(logicalDevice, outputBufferMemory, 0, imageSize, 0, &outputPixels);
     readOutputPixels(outputPixels);
-    vkUnmapMemory(logicalDevice, outputImageMemory);
+    vkUnmapMemory(logicalDevice, outputBufferMemory);
     
     textureReadWriteMutex.unlock();
 }
@@ -112,7 +89,9 @@ void VulkanComputeProgram::process(ImageInfo imageInfo,
 
 void VulkanComputeProgram::regenerateBuffersIfNeeded(ImageInfo imageInfo)
 {
-    if (imageInfo.width != this->imageInfo.width || imageInfo.height != this->imageInfo.height)
+    if (imageInfo.width != this->imageInfo.width
+        || imageInfo.height != this->imageInfo.height
+        || imageInfo.pixelFormat != this->imageInfo.pixelFormat)
     {
         this->imageInfo = imageInfo;
         
@@ -124,9 +103,14 @@ void VulkanComputeProgram::regenerateBuffersIfNeeded(ImageInfo imageInfo)
         destroyImageViews();
         destroyImageMemory();
         destroyImages();
+        destroyBufferMemory();
+        destroyBuffers();
         
         
         // recreate objects
+        createBuffers();
+        createBufferMemory();
+        bindBufferMemory();
         createImages();
         createImageMemory();
         bindImageMemory();
@@ -137,6 +121,7 @@ void VulkanComputeProgram::regenerateBuffersIfNeeded(ImageInfo imageInfo)
         createPipeline();
         
         // prepare for computations
+        transitionImageLayouts();
         updateDescriptorSet();
     }
 }
@@ -290,12 +275,12 @@ std::optional<uint32_t> getComputeQueueFamilyIndex(VkPhysicalDevice physicalDevi
 bool isPhysicalDeviceSuitable(VkPhysicalDevice device)
 {
     // TODO: Check for optimal device, not just the first one with the Compute capability.
-     VkPhysicalDeviceProperties properties;
-     vkGetPhysicalDeviceProperties(device, &properties);
-     
-     VkPhysicalDeviceFeatures features;
-     vkGetPhysicalDeviceFeatures(device, &features);
-  
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(device, &properties);
+    
+    VkPhysicalDeviceFeatures features;
+    vkGetPhysicalDeviceFeatures(device, &features);
+    
     auto allRequiredExtensionsSupported = isPhysicalDeviceExtensionSupportAdequate(device);
     
     auto computeQueueFamilyIndex = getComputeQueueFamilyIndex(device);
@@ -399,26 +384,6 @@ void VulkanComputeProgram::destroyCommandPool()
     vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 }
 
-// MARK: - Command Buffers
-
-void VulkanComputeProgram::createCommandBuffer()
-{
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.pNext = nullptr;
-    allocInfo.commandPool = commandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = 1;
-    
-    VK_ASSERT_SUCCESS(vkAllocateCommandBuffers(logicalDevice, &allocInfo, &commandBuffer),
-                      "Failed to allocate command buffer!");
-}
-
-void VulkanComputeProgram::destroyCommandBuffer()
-{
-    vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
-}
-
 // MARK: - Descriptor Pools
 void VulkanComputeProgram::createDescriptorPool()
 {
@@ -512,47 +477,85 @@ void VulkanComputeProgram::destroyShaderModule()
     vkDestroyShaderModule(logicalDevice, shaderModule, nullptr);
 }
 
-// MARK: - Device Memory
+// MARK: - Buffers
 
-void createBufferAndMemory(VkPhysicalDevice physicalDevice,
-                           VkDevice logicalDevice,
-                           VkDeviceSize bufferSize,
-                           VkBufferUsageFlags usageFlags,
-                           VkMemoryPropertyFlags memoryFlags,
-                           uint32_t queueFamilyIndex,
-                           VkBuffer& buffer,
-                           VkDeviceMemory& memory)
+void createBuffer(VkPhysicalDevice physicalDevice,
+                  VkDevice logicalDevice,
+                  VkDeviceSize bufferSize,
+                  VkBufferUsageFlags usageFlags,
+                  uint32_t queueFamilyIndex,
+                  VkBuffer& buffer)
 {
     // Create buffer
-    VkBufferCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    createInfo.pNext = nullptr;
-    createInfo.flags = 0;
-    createInfo.size = bufferSize;
-    createInfo.usage = usageFlags;
-    createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    createInfo.queueFamilyIndexCount = 1;
-    createInfo.pQueueFamilyIndices = &queueFamilyIndex;
+    VkBufferCreateInfo createInfo {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .size = bufferSize,
+        .usage = usageFlags,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 1,
+        .pQueueFamilyIndices = &queueFamilyIndex,
+    };
     
     VK_ASSERT_SUCCESS(vkCreateBuffer(logicalDevice, &createInfo, nullptr, &buffer),
-                      "Failed to create input buffer!");
+                      "Failed to create buffer!");
+}
+
+void VulkanComputeProgram::createBuffers()
+{
+    auto bufferSize = static_cast<VkDeviceSize>(imageInfo.size());
     
-    // Fetch device memory properties.
+    createBuffer(physicalDevice,
+                 logicalDevice,
+                 bufferSize,
+                 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                 computeQueueFamilyIndex,
+                 inputBuffer);
+    
+    createBuffer(physicalDevice,
+                 logicalDevice,
+                 bufferSize,
+                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                 computeQueueFamilyIndex,
+                 outputBuffer);
+}
+
+void VulkanComputeProgram::destroyBuffers()
+{
+    vkDestroyBuffer(logicalDevice, inputBuffer, nullptr);
+    vkDestroyBuffer(logicalDevice, outputBuffer, nullptr);
+}
+
+// MARK: - Buffer Memory
+
+void allocateBufferMemory(VkPhysicalDevice physicalDevice,
+                          VkDevice logicalDevice,
+                          VkDeviceSize bufferSize,
+                          VkMemoryPropertyFlags propertyFlags,
+                          VkBuffer& buffer,
+                          VkDeviceMemory& memory)
+{
+    VkMemoryRequirements memoryRequirements;
+    vkGetBufferMemoryRequirements(logicalDevice, buffer, &memoryRequirements);
+    
     VkPhysicalDeviceMemoryProperties memoryProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
-    
     VkDeviceSize availableMemorySize;
     uint32_t memoryTypeIndex = VK_MAX_MEMORY_TYPES;
+    
     for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
     {
         auto memoryType = memoryProperties.memoryTypes[i];
         auto memoryHeap = memoryProperties.memoryHeaps[memoryType.heapIndex];
         
-        if ((memoryType.propertyFlags & memoryFlags) == memoryFlags
+        if ((memoryRequirements.memoryTypeBits & (1 << i))
+            && (memoryType.propertyFlags & propertyFlags) == propertyFlags
             && bufferSize <= memoryHeap.size)
         {
             memoryTypeIndex = i;
             availableMemorySize = memoryHeap.size;
+            break;
         }
     }
     
@@ -561,31 +564,53 @@ void createBufferAndMemory(VkPhysicalDevice physicalDevice,
         throw std::runtime_error("Failed to find suitable memory!");
     }
     
-    // TODO: Here we should check if availableMemorySize is greater than the amount allocated so far plus the amount we're about to allocate.
-    // If there is not enough memory, we will free up some resources
-    
-    VkMemoryRequirements memoryRequirements;
-    vkGetBufferMemoryRequirements(logicalDevice, buffer, &memoryRequirements);
-    
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.pNext = nullptr;
-    allocInfo.allocationSize = memoryRequirements.size;
-    allocInfo.memoryTypeIndex = memoryTypeIndex;
+    VkMemoryAllocateInfo allocInfo {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .allocationSize = memoryRequirements.size,
+        .memoryTypeIndex = memoryTypeIndex,
+    };
     
     VK_ASSERT_SUCCESS(vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &memory),
                       "Failed to allocate device memory!");
-    
-    vkBindBufferMemory(logicalDevice, buffer, memory, 0);
 }
 
-void destroyBufferAndMemory(VkDevice logicalDevice, VkBuffer buffer, VkDeviceMemory memory)
+void VulkanComputeProgram::createBufferMemory()
 {
-    vkDestroyBuffer(logicalDevice, buffer, nullptr);
-    vkFreeMemory(logicalDevice, memory, nullptr);
+    auto memorySize = static_cast<VkDeviceSize>(imageInfo.size());
+    
+    VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    
+    allocateBufferMemory(physicalDevice,
+                         logicalDevice,
+                         memorySize,
+                         memoryFlags,
+                         inputBuffer,
+                         inputBufferMemory);
+    
+    allocateBufferMemory(physicalDevice,
+                         logicalDevice,
+                         memorySize,
+                         memoryFlags,
+                         outputBuffer,
+                         outputBufferMemory);
 }
 
-// MARK: - Image & Memory
+void VulkanComputeProgram::destroyBufferMemory()
+{
+    vkFreeMemory(logicalDevice, inputBufferMemory, nullptr);
+    vkFreeMemory(logicalDevice, outputBufferMemory, nullptr);
+}
+
+// MARK: - Bind Buffer Memory
+
+void VulkanComputeProgram::bindBufferMemory()
+{
+    vkBindBufferMemory(logicalDevice, inputBuffer, inputBufferMemory, 0);
+    vkBindBufferMemory(logicalDevice, outputBuffer, outputBufferMemory, 0);
+}
+
+// MARK: - Images
 
 VkFormat getImageFormat(ImageInfo imageInfo)
 {
@@ -593,9 +618,9 @@ VkFormat getImageFormat(ImageInfo imageInfo)
     switch (imageInfo.pixelFormat)
     {
         case PixelFormat::ARGB32:
-            return VK_FORMAT_R8G8B8A8_SNORM;
+            return VK_FORMAT_R8G8B8A8_UNORM;
         case PixelFormat::ARGB64:
-            return VK_FORMAT_R16G16B16A16_SFLOAT;
+            return VK_FORMAT_R16G16B16A16_UNORM;
         case PixelFormat::ARGB128:
             return VK_FORMAT_R32G32B32A32_SFLOAT;
     }
@@ -614,6 +639,8 @@ VkExtent3D getImageExtent(ImageInfo imageInfo)
 void createImage(VkDevice logicalDevice,
                  ImageInfo imageInfo,
                  VkImageUsageFlags usageFlags,
+                 VkImageLayout imageLayout,
+                 VkImageTiling imageTiling,
                  VkImage& image)
 {
     // fetch some image properties
@@ -631,26 +658,34 @@ void createImage(VkDevice logicalDevice,
     createInfo.mipLevels = 1;
     createInfo.arrayLayers = 1;
     createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    createInfo.tiling = VK_IMAGE_TILING_LINEAR;
+    createInfo.tiling = imageTiling;
     createInfo.usage = usageFlags;
     createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     createInfo.queueFamilyIndexCount = 0;
     createInfo.pQueueFamilyIndices = nullptr;
-    createInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
+    createInfo.initialLayout = imageLayout;
     
     VK_ASSERT_SUCCESS(vkCreateImage(logicalDevice, &createInfo, nullptr, &image),
                       "Failed to create image!");
 }
 
-// MARK: - Images
-
 void VulkanComputeProgram::createImages()
 {
     // create input image
-    createImage(logicalDevice, imageInfo, VK_IMAGE_USAGE_SAMPLED_BIT, inputImage);
+    createImage(logicalDevice,
+                imageInfo,
+                VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_TILING_OPTIMAL,
+                inputImage);
     
     // create output image
-    createImage(logicalDevice, imageInfo, VK_IMAGE_USAGE_STORAGE_BIT, outputImage);
+    createImage(logicalDevice,
+                imageInfo,
+                VK_IMAGE_USAGE_STORAGE_BIT,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_TILING_OPTIMAL,
+                outputImage);
 }
 
 void VulkanComputeProgram::destroyImages()
@@ -660,7 +695,6 @@ void VulkanComputeProgram::destroyImages()
 }
 
 // MARK: - Image Memory
-
 
 void allocateImageMemory(VkPhysicalDevice physicalDevice,
                          VkDevice logicalDevice,
@@ -711,7 +745,7 @@ void allocateImageMemory(VkPhysicalDevice physicalDevice,
 
 void VulkanComputeProgram::createImageMemory()
 {
-    VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     
     allocateImageMemory(physicalDevice, logicalDevice, imageInfo, memoryFlags, inputImage, inputImageMemory);
     allocateImageMemory(physicalDevice, logicalDevice, imageInfo, memoryFlags, outputImage, outputImageMemory);
@@ -722,8 +756,6 @@ void VulkanComputeProgram::destroyImageMemory()
     vkFreeMemory(logicalDevice, inputImageMemory, nullptr);
     vkFreeMemory(logicalDevice, outputImageMemory, nullptr);
 }
-
-
 
 // MARK: - Bind Image Memory
 
@@ -892,11 +924,166 @@ void VulkanComputeProgram::destroyPipeline()
     vkDestroyPipeline(logicalDevice, pipeline, nullptr);
 }
 
+// MARK: - Transition Image Layouts
+
+void VulkanComputeProgram::transitionImageLayout(VkImage& image, ImageLayoutTransitionInfo transitionInfo)
+{
+    submitComputeQueue([&](VkCommandBuffer& commandBuffer) {
+        VkImageSubresourceRange subresourceRange{};
+        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        subresourceRange.baseMipLevel = 0;
+        subresourceRange.levelCount = 1;
+        subresourceRange.baseArrayLayer = 0;
+        subresourceRange.layerCount = 1;
+        
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.pNext = nullptr;
+        barrier.srcAccessMask = transitionInfo.srcAccessMask;
+        barrier.dstAccessMask = transitionInfo.dstAccessMask;
+        barrier.oldLayout = transitionInfo.oldLayout;
+        barrier.newLayout = transitionInfo.newLayout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image;
+        barrier.subresourceRange = subresourceRange;
+        
+        vkCmdPipelineBarrier(commandBuffer,
+                             transitionInfo.srcStageMask,
+                             transitionInfo.dstStageMask,
+                             0,
+                             0, nullptr,
+                             0, nullptr,
+                             1, &barrier);
+    });
+}
+
+void VulkanComputeProgram::transitionImageLayouts()
+{
+    // transition input image to shader readable
+    transitionImageLayout(inputImage, {
+        .oldLayout = VK_IMAGE_LAYOUT_PREINITIALIZED,
+        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        .srcAccessMask = VK_ACCESS_NONE_KHR,
+        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+    });
+    
+    // transition output image to shader writeable
+    transitionImageLayout(outputImage, {
+        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .newLayout = VK_IMAGE_LAYOUT_GENERAL,
+        .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        .srcAccessMask = VK_ACCESS_NONE_KHR,
+        .dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+    });
+}
+
+// MARK: - Copy buffer to image
+void VulkanComputeProgram::copyInputBufferToImage()
+{
+    transitionImageLayout(inputImage, {
+        .oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .srcStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_SHADER_READ_BIT,
+        .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+    });
+    
+    submitComputeQueue([&](VkCommandBuffer& commandBuffer) {
+        VkBufferImageCopy region = {
+            .bufferOffset = 0,
+            .bufferRowLength = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .mipLevel = 0,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+            .imageOffset = {0, 0, 0},
+            .imageExtent = {
+                imageInfo.width,
+                imageInfo.height,
+                1,
+            },
+        };
+        
+        vkCmdCopyBufferToImage(commandBuffer,
+                               inputBuffer,
+                               inputImage,
+                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                               1,
+                               &region);
+        
+    });
+    
+    transitionImageLayout(inputImage, {
+        .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+    });
+}
+// MARK: - Copy image to buffer
+
+void VulkanComputeProgram::copyOutputImageToBuffer()
+{
+    transitionImageLayout(outputImage, {
+        .oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+        .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        .srcStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+        .dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
+    });
+    
+    submitComputeQueue([&](VkCommandBuffer& commandBuffer) {
+        VkBufferImageCopy region = {
+            .bufferOffset = 0,
+            .bufferRowLength = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource = {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .mipLevel = 0,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+            },
+            .imageOffset = {0, 0, 0},
+            .imageExtent = {
+                imageInfo.width,
+                imageInfo.height,
+                1,
+            },
+        };
+        
+        vkCmdCopyImageToBuffer(commandBuffer,
+                               outputImage,
+                               VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                               outputBuffer,
+                               1,
+                               &region);
+        
+    });
+    
+    transitionImageLayout(inputImage, {
+        .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        .newLayout = VK_IMAGE_LAYOUT_GENERAL,
+        .srcStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
+        .dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+    });
+}
 // MARK: - Update Descriptor Set
 
 void VulkanComputeProgram::updateDescriptorSet()
 {
-    
     // update the descriptor sets with input/output buffer info
     
     // Input
@@ -904,7 +1091,7 @@ void VulkanComputeProgram::updateDescriptorSet()
     VkDescriptorImageInfo inputImageInfo{};
     inputImageInfo.sampler = inputSampler;
     inputImageInfo.imageView = inputImageView;
-    inputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    inputImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     
     VkWriteDescriptorSet inputWriteDescriptorSet{};
     inputWriteDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -945,10 +1132,36 @@ void VulkanComputeProgram::updateDescriptorSet()
     vkUpdateDescriptorSets(logicalDevice, 2, writeDescriptorSet, 0, nullptr);
 }
 
-// MARK: - Record Command Buffer
 
-void VulkanComputeProgram::recordCommandBuffer()
+// MARK: - Submit Compute Queue
+
+VkCommandBuffer createCommandBuffer(VkDevice& logicalDevice, VkCommandPool& commandPool)
 {
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.pNext = nullptr;
+    allocInfo.commandPool = commandPool;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandBufferCount = 1;
+    
+    VkCommandBuffer commandBuffer;
+    VK_ASSERT_SUCCESS(vkAllocateCommandBuffers(logicalDevice, &allocInfo, &commandBuffer),
+                      "Failed to allocate command buffer!");
+    
+    return commandBuffer;
+}
+
+void destroyCommandBuffer(VkDevice& logicalDevice, VkCommandPool& commandPool, VkCommandBuffer& commandBuffer)
+{
+    vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
+}
+
+void VulkanComputeProgram::submitComputeQueue(std::function<void(VkCommandBuffer&)> recordCommands)
+{
+    auto commandBuffer = createCommandBuffer(logicalDevice, commandPool);
+    
+    // Begin, record, and end command buffer.
+    
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.pNext = nullptr;
@@ -958,20 +1171,13 @@ void VulkanComputeProgram::recordCommandBuffer()
     VK_ASSERT_SUCCESS(vkBeginCommandBuffer(commandBuffer, &beginInfo),
                       "Failed to begin command buffer!");
     
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
-    
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-    
-    vkCmdDispatch(commandBuffer, imageInfo.width, imageInfo.height, 1);
+    recordCommands(commandBuffer);
     
     VK_ASSERT_SUCCESS(vkEndCommandBuffer(commandBuffer),
                       "Failed to end command buffer!");
-}
-
-// MARK: - Submit Compute Queue
-
-void VulkanComputeProgram::submitComputeQueue()
-{
+    
+    // Submit compute queue
+    
     // TODO: Use semaphores and fences
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -989,4 +1195,18 @@ void VulkanComputeProgram::submitComputeQueue()
     
     VK_ASSERT_SUCCESS(vkQueueWaitIdle(computeQueue),
                       "Failed to wait for compute queue idle!");
+    
+    // Cleanup
+    destroyCommandBuffer(logicalDevice, commandPool, commandBuffer);
+}
+
+// MARK: - Execute Shader
+
+void VulkanComputeProgram::executeShader()
+{
+    submitComputeQueue([&](VkCommandBuffer& commandBuffer) {
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+        vkCmdDispatch(commandBuffer, imageInfo.width, imageInfo.height, 1);
+    });
 }

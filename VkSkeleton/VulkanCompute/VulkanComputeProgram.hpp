@@ -44,16 +44,19 @@ private:
     VkSampler                   outputSampler;
     
     // Ephemeral objects
+    VkBuffer                    inputBuffer                 = VK_NULL_HANDLE;
+    VkDeviceMemory              inputBufferMemory           = VK_NULL_HANDLE;
     VkImage                     inputImage                  = VK_NULL_HANDLE;
     VkDeviceMemory              inputImageMemory            = VK_NULL_HANDLE;
     VkImageView                 inputImageView              = VK_NULL_HANDLE;
+    VkBuffer                    outputBuffer                = VK_NULL_HANDLE;
+    VkDeviceMemory              outputBufferMemory          = VK_NULL_HANDLE;
     VkImage                     outputImage                 = VK_NULL_HANDLE;
     VkDeviceMemory              outputImageMemory           = VK_NULL_HANDLE;
     VkImageView                 outputImageView             = VK_NULL_HANDLE;
     VkDescriptorSetLayout       descriptorSetLayout         = VK_NULL_HANDLE;
     VkPipelineLayout            pipelineLayout              = VK_NULL_HANDLE;
     VkPipeline                  pipeline                    = VK_NULL_HANDLE;
-    VkCommandBuffer             commandBuffer               = VK_NULL_HANDLE;
     VkDescriptorSet             descriptorSet               = VK_NULL_HANDLE;
     
     // Synchronization
@@ -89,6 +92,14 @@ private:
     void createSamplers();
     void destroySamplers();
     
+    void createBuffers();
+    void destroyBuffers();
+    
+    void createBufferMemory();
+    void destroyBufferMemory();
+    
+    void bindBufferMemory();
+    
     void createImages();
     void destroyImages();
     
@@ -112,13 +123,17 @@ private:
     void createPipeline();
     void destroyPipeline();
     
-    void createCommandBuffer();
-    void destroyCommandBuffer();
-    
     void updateDescriptorSet();
-    void recordCommandBuffer();
     
-    void submitComputeQueue();
+    void transitionImageLayout(VkImage& image, ImageLayoutTransitionInfo transitionInfo);
+    void transitionImageLayouts();
+    
+    void copyInputBufferToImage();
+    void copyOutputImageToBuffer();
+    
+    void submitComputeQueue(std::function<void(VkCommandBuffer&)> recordCommands);
+    
+    void executeShader();
     
 };
 
