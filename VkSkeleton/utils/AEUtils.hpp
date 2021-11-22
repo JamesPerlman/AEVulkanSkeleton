@@ -31,10 +31,10 @@ enum CopyCommand {
 
 void copyImageData(AEGP_SuiteHandler&   suites,
                    PF_InData*           in_data,
-                   PF_PixelFormat       pixelFormat,
                    PF_EffectWorld*      input_worldP,
                    PF_EffectWorld*      output_worldP,
                    CopyCommand          copyCommand,
+                   PF_PixelFormat       pixelFormat,
                    void*                bufferP);
 
 

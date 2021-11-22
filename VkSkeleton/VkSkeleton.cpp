@@ -231,10 +231,10 @@ SmartRender(
             {
                 AEUtils::copyImageData(suites,
                                        in_data,
-                                       pfPixelFormat,
                                        input_worldP,
                                        output_worldP,
                                        AEUtils::CopyCommand::InputWorldToBuffer,
+                                       pfPixelFormat,
                                        buffer);
             };
             
@@ -242,10 +242,10 @@ SmartRender(
             {
                 AEUtils::copyImageData(suites,
                                        in_data,
-                                       pfPixelFormat,
                                        input_worldP,
                                        output_worldP,
                                        AEUtils::CopyCommand::BufferToOutputWorld,
+                                       pfPixelFormat,
                                        buffer);
             };
             

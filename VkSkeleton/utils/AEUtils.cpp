@@ -104,20 +104,24 @@ CopyPixelFloatFromBufferToOutputWorld(void*             refcon,
     return PF_Err_NONE;
 }
 
-void AEUtils::copyImageData(AEGP_SuiteHandler&   suites,
-                            PF_InData*           in_data,
-                            PF_PixelFormat       pixelFormat,
-                            PF_EffectWorld*      input_worldP,
-                            PF_EffectWorld*      output_worldP,
-                            CopyCommand          copyCommand,
-                            void*                bufferP)
+// Image Data Copy Function
+void AEUtils::copyImageData(AEGP_SuiteHandler&  suites,
+                            PF_InData*          in_data,
+                            PF_EffectWorld*     input_worldP,
+                            PF_EffectWorld*     output_worldP,
+                            CopyCommand         copyCommand,
+                            PF_PixelFormat      pixelFormat,
+                            void*               bufferP)
 {
+    // ARGB128 contains 32 bits per color component
+    // This one is special since we need to use a custom float iterator
     switch (pixelFormat)
     {
         case PF_PixelFormat_ARGB128:
         {
-            CopyPixelFloat_t refcon{};
-            refcon.floatBufferP = reinterpret_cast<PF_PixelFloat*>(bufferP);
+            CopyPixelFloat_t refcon {
+                .floatBufferP = reinterpret_cast<PF_PixelFloat*>(bufferP),
+            };
             
             PF_IteratePixelFloatFunc copyFunction;
             
@@ -145,66 +149,57 @@ void AEUtils::copyImageData(AEGP_SuiteHandler&   suites,
                                                        reinterpret_cast<void*>(&refcon),
                                                        copyFunction,
                                                        output_worldP));
+            
             break;
         }
-            
         case PF_PixelFormat_ARGB64:
         {
-            auto buffer16P = reinterpret_cast<PF_Pixel16*>(bufferP);
+            PF_Pixel16* pixelDataStart = NULL;
+            auto pixelSize = sizeof(PF_Pixel16);
             
             switch (copyCommand)
             {
                 case CopyCommand::BufferToOutputWorld:
                 {
-                    size_t bufferSize = output_worldP->width * sizeof(PF_Pixel16);
-                    PF_Pixel16* pixelDataStart = NULL;
                     PF_GET_PIXEL_DATA16(output_worldP, NULL, &pixelDataStart);
-                    memcpy(pixelDataStart, buffer16P, bufferSize);
-                    
+                    auto bufferSize = pixelSize * output_worldP->width * output_worldP->height;
+                    memcpy(pixelDataStart, bufferP, bufferSize);
                     break;
                 }
                 case CopyCommand::InputWorldToBuffer:
                 {
-                    size_t bufferSize = input_worldP->width * sizeof(PF_Pixel16);
-                    PF_Pixel16* pixelDataStart = NULL;
                     PF_GET_PIXEL_DATA16(input_worldP, NULL, &pixelDataStart);
-                    memcpy(buffer16P, pixelDataStart, bufferSize);
+                    auto bufferSize = pixelSize * input_worldP->width * input_worldP->height;
+                    memcpy(bufferP, pixelDataStart, bufferSize);
                     break;
                 }
             }
-            
             break;
         }
             
         case PF_PixelFormat_ARGB32:
         {
-            auto buffer8P = reinterpret_cast<PF_Pixel8*>(bufferP);
+            PF_Pixel8* pixelDataStart = NULL;
+            auto pixelSize = sizeof(PF_Pixel8);
             
             switch (copyCommand)
             {
                 case CopyCommand::BufferToOutputWorld:
                 {
-                    size_t bufferSize = output_worldP->width * output_worldP->height * sizeof(PF_Pixel8);
-                    PF_Pixel8* pixelDataStart = NULL;
                     PF_GET_PIXEL_DATA8(output_worldP, NULL, &pixelDataStart);
-                    memcpy(pixelDataStart, buffer8P, bufferSize);
+                    auto bufferSize = pixelSize * output_worldP->width * output_worldP->height;
+                    memcpy(pixelDataStart, bufferP, bufferSize);
                     break;
                 }
                 case CopyCommand::InputWorldToBuffer:
                 {
-                    size_t bufferSize = input_worldP->width * input_worldP->height * sizeof(PF_Pixel8);
-                    PF_Pixel8* pixelDataStart = NULL;
                     PF_GET_PIXEL_DATA8(input_worldP, NULL, &pixelDataStart);
-                    memcpy(buffer8P, pixelDataStart, bufferSize);
+                    auto bufferSize = pixelSize * input_worldP->width * input_worldP->height;
+                    memcpy(bufferP, pixelDataStart, bufferSize);
                     break;
                 }
             }
             break;
         }
-            
-        default:
-            CHECK(PF_Err_BAD_CALLBACK_PARAM);
-            break;
     }
 }
-
