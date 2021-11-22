@@ -683,13 +683,13 @@ void VulkanComputeProgram::createImages()
     // create input image
     createImage(logicalDevice,
                 imageInfo,
-                VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                 inputImage);
     
     // create output image
     createImage(logicalDevice,
                 imageInfo,
-                VK_IMAGE_USAGE_STORAGE_BIT,
+                VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                 outputImage);
 }
 
@@ -974,7 +974,7 @@ void VulkanComputeProgram::transitionImageLayouts()
 {
     // transition input image to shader readable
     transitionImageLayout(inputImage, {
-        .oldLayout = VK_IMAGE_LAYOUT_PREINITIALIZED,
+        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
         .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
         .dstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -1083,11 +1083,11 @@ void VulkanComputeProgram::copyOutputImageToBuffer()
         
     });
     
-    transitionImageLayout(inputImage, {
+    transitionImageLayout(outputImage, {
         .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
         .newLayout = VK_IMAGE_LAYOUT_GENERAL,
-        .srcStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
         .srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
         .dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
     });
