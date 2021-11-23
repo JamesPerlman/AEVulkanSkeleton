@@ -539,14 +539,14 @@ void VulkanComputeProgram::createImageBuffers()
     VulkanUtils::createBuffer(physicalDevice,
                               logicalDevice,
                               bufferSize,
-                              VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                               computeQueueFamilyIndex,
                               inputBuffer);
     
     VulkanUtils::createBuffer(physicalDevice,
                               logicalDevice,
                               bufferSize,
-                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                              VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                               computeQueueFamilyIndex,
                               outputBuffer);
 }
