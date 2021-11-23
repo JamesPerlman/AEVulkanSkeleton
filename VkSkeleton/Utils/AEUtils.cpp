@@ -104,6 +104,25 @@ CopyPixelFloatFromBufferToOutputWorld(void*             refcon,
     return PF_Err_NONE;
 }
 
+// Copy row-by-row helper
+void copyRowByRow(void*     dst,
+                  void*     src,
+                  size_t    dstRowBytes,
+                  size_t    srcRowBytes,
+                  uint32_t  numRows)
+{
+    auto dstAsChar = static_cast<char*>(dst);
+    auto srcAsChar = static_cast<char*>(src);
+    auto copyRowBytes = MIN(dstRowBytes, srcRowBytes);
+    
+    for (uint32_t i = 0; i < numRows; ++i)
+    {
+        memcpy(dstAsChar + i * dstRowBytes,
+               srcAsChar + i * srcRowBytes,
+               copyRowBytes);
+    }
+}
+
 // Image Data Copy Function
 void AEUtils::copyImageData(AEGP_SuiteHandler&  suites,
                             PF_InData*          in_data,
@@ -162,15 +181,21 @@ void AEUtils::copyImageData(AEGP_SuiteHandler&  suites,
                 case CopyCommand::BufferToOutputWorld:
                 {
                     PF_GET_PIXEL_DATA16(output_worldP, NULL, &pixelDataStart);
-                    auto bufferSize = pixelSize * output_worldP->width * output_worldP->height;
-                    memcpy(pixelDataStart, bufferP, bufferSize);
+                    copyRowByRow(pixelDataStart,
+                                 bufferP,
+                                 output_worldP->rowbytes,
+                                 pixelSize * output_worldP->width,
+                                 output_worldP->height);
                     break;
                 }
                 case CopyCommand::InputWorldToBuffer:
                 {
                     PF_GET_PIXEL_DATA16(input_worldP, NULL, &pixelDataStart);
-                    auto bufferSize = pixelSize * input_worldP->width * input_worldP->height;
-                    memcpy(bufferP, pixelDataStart, bufferSize);
+                    copyRowByRow(bufferP,
+                                 pixelDataStart,
+                                 pixelSize * input_worldP->width,
+                                 input_worldP->rowbytes,
+                                 input_worldP->height);
                     break;
                 }
             }
@@ -187,15 +212,21 @@ void AEUtils::copyImageData(AEGP_SuiteHandler&  suites,
                 case CopyCommand::BufferToOutputWorld:
                 {
                     PF_GET_PIXEL_DATA8(output_worldP, NULL, &pixelDataStart);
-                    auto bufferSize = pixelSize * output_worldP->width * output_worldP->height;
-                    memcpy(pixelDataStart, bufferP, bufferSize);
+                    copyRowByRow(pixelDataStart,
+                                 bufferP,
+                                 output_worldP->rowbytes,
+                                 pixelSize * output_worldP->width,
+                                 output_worldP->height);
                     break;
                 }
                 case CopyCommand::InputWorldToBuffer:
                 {
                     PF_GET_PIXEL_DATA8(input_worldP, NULL, &pixelDataStart);
-                    auto bufferSize = pixelSize * input_worldP->width * input_worldP->height;
-                    memcpy(bufferP, pixelDataStart, bufferSize);
+                    copyRowByRow(bufferP,
+                                 pixelDataStart,
+                                 pixelSize * input_worldP->width,
+                                 input_worldP->rowbytes,
+                                 input_worldP->height);
                     break;
                 }
             }
