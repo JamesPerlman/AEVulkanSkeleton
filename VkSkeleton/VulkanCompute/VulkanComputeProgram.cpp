@@ -14,6 +14,7 @@
 #include "VulkanUtils.hpp"
 
 // MARK: - Constructor
+using namespace VulkanUtils;
 
 void VulkanComputeProgram::setUp(std::string shaderFilePath)
 {
@@ -459,8 +460,8 @@ void VulkanComputeProgram::destroyDescriptorPool()
 
 void VulkanComputeProgram::createSamplers()
 {
-    VulkanUtils::createSampler(logicalDevice, VK_FILTER_LINEAR, inputSampler);
-    VulkanUtils::createSampler(logicalDevice, VK_FILTER_NEAREST, outputSampler);
+    createSampler(logicalDevice, VK_FILTER_LINEAR, inputSampler);
+    createSampler(logicalDevice, VK_FILTER_NEAREST, outputSampler);
 }
 
 void VulkanComputeProgram::destroySamplers()
@@ -475,14 +476,14 @@ void VulkanComputeProgram::createUniformBuffer()
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
     
-    VulkanUtils::createBuffer(physicalDevice,
+    createBuffer(physicalDevice,
                               logicalDevice,
                               bufferSize,
                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                               computeQueueFamilyIndex,
                               uniformBuffer);
     
-    VulkanUtils::allocateBufferMemory(physicalDevice,
+    allocateBufferMemory(physicalDevice,
                                       logicalDevice,
                                       bufferSize,
                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -536,14 +537,14 @@ void VulkanComputeProgram::createImageBuffers()
 {
     auto bufferSize = static_cast<VkDeviceSize>(imageInfo.size());
     
-    VulkanUtils::createBuffer(physicalDevice,
+    createBuffer(physicalDevice,
                               logicalDevice,
                               bufferSize,
                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                               computeQueueFamilyIndex,
                               inputBuffer);
     
-    VulkanUtils::createBuffer(physicalDevice,
+    createBuffer(physicalDevice,
                               logicalDevice,
                               bufferSize,
                               VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -565,14 +566,14 @@ void VulkanComputeProgram::createImageBufferMemory()
     
     VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     
-    VulkanUtils::allocateBufferMemory(physicalDevice,
+    allocateBufferMemory(physicalDevice,
                                       logicalDevice,
                                       memorySize,
                                       memoryFlags,
                                       inputBuffer,
                                       inputBufferMemory);
     
-    VulkanUtils::allocateBufferMemory(physicalDevice,
+    allocateBufferMemory(physicalDevice,
                                       logicalDevice,
                                       memorySize,
                                       memoryFlags,
@@ -599,13 +600,13 @@ void VulkanComputeProgram::bindBufferMemory()
 void VulkanComputeProgram::createImages()
 {
     // create input image
-    VulkanUtils::createImage(logicalDevice,
+    createImage(logicalDevice,
                              imageInfo,
                              VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                              inputImage);
     
     // create output image
-    VulkanUtils::createImage(logicalDevice,
+    createImage(logicalDevice,
                              imageInfo,
                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                              outputImage);
@@ -623,8 +624,8 @@ void VulkanComputeProgram::createImageMemory()
 {
     VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     
-    VulkanUtils::allocateImageMemory(physicalDevice, logicalDevice, imageInfo, memoryFlags, inputImage, inputImageMemory);
-    VulkanUtils::allocateImageMemory(physicalDevice, logicalDevice, imageInfo, memoryFlags, outputImage, outputImageMemory);
+    allocateImageMemory(physicalDevice, logicalDevice, imageInfo, memoryFlags, inputImage, inputImageMemory);
+    allocateImageMemory(physicalDevice, logicalDevice, imageInfo, memoryFlags, outputImage, outputImageMemory);
 }
 
 void VulkanComputeProgram::destroyImageMemory()
@@ -645,14 +646,14 @@ void VulkanComputeProgram::bindImageMemory()
 
 void VulkanComputeProgram::createImageViews()
 {
-    VkFormat format = VulkanUtils::getImageFormat(imageInfo);
+    VkFormat format = getImageFormat(imageInfo);
     
-    VulkanUtils::createImageView(logicalDevice,
+    createImageView(logicalDevice,
                                  format,
                                  inputImage,
                                  inputImageView);
     
-    VulkanUtils::createImageView(logicalDevice,
+    createImageView(logicalDevice,
                                  format,
                                  outputImage,
                                  outputImageView);
