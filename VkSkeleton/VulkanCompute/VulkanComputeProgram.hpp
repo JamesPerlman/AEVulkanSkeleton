@@ -25,6 +25,7 @@ public:
     void tearDown();
     
     void process(ImageInfo imageInfo,
+                 UniformBufferObject uniformBufferObject,
                  std::function<void(void*)> writeInputPixels,
                  std::function<void(void*)> readOutputPixels);
     
@@ -42,6 +43,8 @@ private:
     VkDescriptorPool            descriptorPool;
     VkSampler                   inputSampler;
     VkSampler                   outputSampler;
+    VkBuffer                    uniformBuffer               = VK_NULL_HANDLE;
+    VkDeviceMemory              uniformBufferMemory         = VK_NULL_HANDLE;
     
     // Ephemeral objects
     VkBuffer                    inputBuffer                 = VK_NULL_HANDLE;
@@ -49,11 +52,13 @@ private:
     VkImage                     inputImage                  = VK_NULL_HANDLE;
     VkDeviceMemory              inputImageMemory            = VK_NULL_HANDLE;
     VkImageView                 inputImageView              = VK_NULL_HANDLE;
+    
     VkBuffer                    outputBuffer                = VK_NULL_HANDLE;
     VkDeviceMemory              outputBufferMemory          = VK_NULL_HANDLE;
     VkImage                     outputImage                 = VK_NULL_HANDLE;
     VkDeviceMemory              outputImageMemory           = VK_NULL_HANDLE;
     VkImageView                 outputImageView             = VK_NULL_HANDLE;
+    
     VkDescriptorSetLayout       descriptorSetLayout         = VK_NULL_HANDLE;
     VkPipelineLayout            pipelineLayout              = VK_NULL_HANDLE;
     VkPipeline                  pipeline                    = VK_NULL_HANDLE;
@@ -62,11 +67,12 @@ private:
     // Synchronization
     std::mutex textureReadWriteMutex;
     
-    // Image Info
+    // Compute info
     ImageInfo imageInfo;
     
     // Convenience methods
-    void regenerateBuffersIfNeeded(ImageInfo imageInfo);
+    void regenerateImageBuffersIfNeeded(ImageInfo imageInfo);
+    void updateUniformBuffer(UniformBufferObject uniformBufferObject);
     
     // Object management methods
     void createVulkanInstance();
@@ -92,11 +98,14 @@ private:
     void createSamplers();
     void destroySamplers();
     
-    void createBuffers();
-    void destroyBuffers();
+    void createUniformBuffer();
+    void destroyUniformBuffer();
     
-    void createBufferMemory();
-    void destroyBufferMemory();
+    void createImageBuffers();
+    void destroyImageBuffers();
+    
+    void createImageBufferMemory();
+    void destroyImageBufferMemory();
     
     void bindBufferMemory();
     

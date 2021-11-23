@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1AB0568927319F5900D59EC5 /* AEVulkanUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AB0568727319F5900D59EC5 /* AEVulkanUtils.cpp */; };
+		1ACFD05F274C5AD600C9AF05 /* VulkanUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1ACFD05D274C5AD600C9AF05 /* VulkanUtils.cpp */; };
 		1AE63E842727B79D0035735A /* AEFX_SuiteHelper.c in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63E242727B79C0035735A /* AEFX_SuiteHelper.c */; };
 		1AE63E872727B79D0035735A /* AEGP_SuiteHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63E2D2727B79C0035735A /* AEGP_SuiteHandler.cpp */; };
 		1AE63E882727B79D0035735A /* Smart_Utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1AE63E2E2727B79C0035735A /* Smart_Utils.cpp */; };
@@ -58,6 +59,8 @@
 		1AB0568727319F5900D59EC5 /* AEVulkanUtils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AEVulkanUtils.cpp; sourceTree = "<group>"; };
 		1AB0568827319F5900D59EC5 /* AEVulkanUtils.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AEVulkanUtils.hpp; sourceTree = "<group>"; };
 		1AB5205A2734AD6600F6B065 /* setup-vulkan-env.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "setup-vulkan-env.sh"; sourceTree = "<group>"; };
+		1ACFD05D274C5AD600C9AF05 /* VulkanUtils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = VulkanUtils.cpp; path = ../Utils/VulkanUtils.cpp; sourceTree = "<group>"; };
+		1ACFD05E274C5AD600C9AF05 /* VulkanUtils.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = VulkanUtils.hpp; path = ../Utils/VulkanUtils.hpp; sourceTree = "<group>"; };
 		1AE63E242727B79C0035735A /* AEFX_SuiteHelper.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = AEFX_SuiteHelper.c; sourceTree = "<group>"; };
 		1AE63E262727B79C0035735A /* Smart_Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Smart_Utils.h; sourceTree = "<group>"; };
 		1AE63E282727B79C0035735A /* Param_Utils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Param_Utils.h; sourceTree = "<group>"; };
@@ -165,6 +168,8 @@
 				1AE63EA52727C78A0035735A /* FileUtils.cpp */,
 				1AE63EAB2727C79A0035735A /* VulkanDebugUtils.hpp */,
 				1AE63EAA2727C79A0035735A /* VulkanDebugUtils.cpp */,
+				1ACFD05E274C5AD600C9AF05 /* VulkanUtils.hpp */,
+				1ACFD05D274C5AD600C9AF05 /* VulkanUtils.cpp */,
 			);
 			name = utils;
 			path = ../utils;
@@ -320,6 +325,7 @@
 				8F2D54CC0C3DC8BC000535F4 /* VkSkeleton.cpp in Sources */,
 				8F463F260C3DD6140040C945 /* VkSkeleton_Strings.cpp in Sources */,
 				1AE63EAD2727C79A0035735A /* VulkanComputeProgram.cpp in Sources */,
+				1ACFD05F274C5AD600C9AF05 /* VulkanUtils.cpp in Sources */,
 				1AE63EAE2727C79A0035735A /* VulkanDebugUtils.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

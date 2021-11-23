@@ -11,8 +11,7 @@
 
 #include "FileUtils.hpp"
 #include "VulkanDebugUtils.hpp"
-
-#define VK_ASSERT_SUCCESS(result, message) if (result != VK_SUCCESS) { throw std::runtime_error(message); }
+#include "VulkanUtils.hpp"
 
 // MARK: - Constructor
 
@@ -27,6 +26,7 @@ void VulkanComputeProgram::setUp(std::string shaderFilePath)
     createCommandPool();
     createDescriptorPool();
     createSamplers();
+    createUniformBuffer();
 }
 
 // MARK: - Destructor
@@ -40,6 +40,7 @@ void VulkanComputeProgram::tearDown()
     destroyImageViews();
     destroyImageMemory();
     destroyImages();
+    destroyUniformBuffer();
     destroySamplers();
     destroyDescriptorPool();
     destroyCommandPool();
@@ -54,12 +55,14 @@ void VulkanComputeProgram::tearDown()
 // TODO: Multi-thread the crap outta this.
 
 void VulkanComputeProgram::process(ImageInfo imageInfo,
+                                   UniformBufferObject uniformBufferObject,
                                    std::function<void(void*)> writeInputPixels,
                                    std::function<void(void*)> readOutputPixels)
 {
     textureReadWriteMutex.lock();
     
-    regenerateBuffersIfNeeded(imageInfo);
+    regenerateImageBuffersIfNeeded(imageInfo);
+    updateUniformBuffer(uniformBufferObject);
     
     auto imageSize = imageInfo.size();
     
@@ -87,7 +90,7 @@ void VulkanComputeProgram::process(ImageInfo imageInfo,
 
 // Set or reset GPU memory if needed
 
-void VulkanComputeProgram::regenerateBuffersIfNeeded(ImageInfo imageInfo)
+void VulkanComputeProgram::regenerateImageBuffersIfNeeded(ImageInfo imageInfo)
 {
     if (imageInfo.width != this->imageInfo.width
         || imageInfo.height != this->imageInfo.height
@@ -103,13 +106,12 @@ void VulkanComputeProgram::regenerateBuffersIfNeeded(ImageInfo imageInfo)
         destroyImageViews();
         destroyImageMemory();
         destroyImages();
-        destroyBufferMemory();
-        destroyBuffers();
-        
+        destroyImageBufferMemory();
+        destroyImageBuffers();
         
         // recreate objects
-        createBuffers();
-        createBufferMemory();
+        createImageBuffers();
+        createImageBufferMemory();
         bindBufferMemory();
         createImages();
         createImageMemory();
@@ -124,6 +126,24 @@ void VulkanComputeProgram::regenerateBuffersIfNeeded(ImageInfo imageInfo)
         transitionImageLayouts();
         updateDescriptorSet();
     }
+}
+
+// MARK: - Update Uniform Buffer Object
+void VulkanComputeProgram::updateUniformBuffer(UniformBufferObject uniformBufferObject)
+{
+    auto bufferSize = sizeof(uniformBufferObject);
+    
+    void* uniformBufferData;
+    vkMapMemory(logicalDevice,
+                uniformBufferMemory,
+                0,
+                bufferSize,
+                0,
+                &uniformBufferData);
+    
+    memcpy(uniformBufferData, &uniformBufferObject, bufferSize);
+    
+    vkUnmapMemory(logicalDevice, uniformBufferMemory);
 }
 
 // MARK: - Vulkan Instance
@@ -403,9 +423,15 @@ void VulkanComputeProgram::createDescriptorPool()
         .descriptorCount = 1,
     };
     
-    VkDescriptorPoolSize poolSizes[2] = {
+    VkDescriptorPoolSize uniformPoolSize {
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = 1,
+    };
+    
+    VkDescriptorPoolSize poolSizes[3] = {
         inputPoolSize,
         outputPoolSize,
+        uniformPoolSize,
     };
     
     VkDescriptorPoolCreateInfo createInfo {
@@ -413,11 +439,14 @@ void VulkanComputeProgram::createDescriptorPool()
         .pNext = nullptr,
         .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
         .maxSets = 1,
-        .poolSizeCount = 2,
+        .poolSizeCount = 3,
         .pPoolSizes = poolSizes,
     };
     
-    VK_ASSERT_SUCCESS(vkCreateDescriptorPool(logicalDevice, &createInfo, nullptr, &descriptorPool),
+    VK_ASSERT_SUCCESS(vkCreateDescriptorPool(logicalDevice,
+                                             &createInfo,
+                                             nullptr,
+                                             &descriptorPool),
                       "Failed to create descriptor pool!");
 }
 
@@ -428,43 +457,53 @@ void VulkanComputeProgram::destroyDescriptorPool()
 
 // MARK: - Samplers
 
-void createSampler(VkDevice logicalDevice, VkFilter filter, VkSampler& sampler)
-{
-    VkSamplerCreateInfo createInfo {
-        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .magFilter = filter,
-        .minFilter = filter,
-        .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
-        .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-        .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-        .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-        .mipLodBias = 0.0f,
-        .anisotropyEnable = VK_FALSE,
-        .maxAnisotropy = 1.0f,
-        .compareEnable = VK_FALSE,
-        .compareOp = VK_COMPARE_OP_NEVER,
-        .minLod = 0.0f,
-        .maxLod = 0.0f,
-        .borderColor = VK_BORDER_COLOR_INT_TRANSPARENT_BLACK,
-        .unnormalizedCoordinates = VK_FALSE,
-    };
-    
-    VK_ASSERT_SUCCESS(vkCreateSampler(logicalDevice, &createInfo, nullptr, &sampler),
-                      "Failed to create sampler!");
-}
-
 void VulkanComputeProgram::createSamplers()
 {
-    createSampler(logicalDevice, VK_FILTER_LINEAR, inputSampler);
-    createSampler(logicalDevice, VK_FILTER_NEAREST, outputSampler);
+    VulkanUtils::createSampler(logicalDevice, VK_FILTER_LINEAR, inputSampler);
+    VulkanUtils::createSampler(logicalDevice, VK_FILTER_NEAREST, outputSampler);
 }
 
 void VulkanComputeProgram::destroySamplers()
 {
     vkDestroySampler(logicalDevice, inputSampler, nullptr);
     vkDestroySampler(logicalDevice, outputSampler, nullptr);
+}
+
+// MARK: - Uniform Buffers
+
+void VulkanComputeProgram::createUniformBuffer()
+{
+    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+    
+    VulkanUtils::createBuffer(physicalDevice,
+                              logicalDevice,
+                              bufferSize,
+                              VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                              computeQueueFamilyIndex,
+                              uniformBuffer);
+    
+    VulkanUtils::allocateBufferMemory(physicalDevice,
+                                      logicalDevice,
+                                      bufferSize,
+                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                      uniformBuffer,
+                                      uniformBufferMemory);
+    
+    vkBindBufferMemory(logicalDevice,
+                       uniformBuffer,
+                       uniformBufferMemory,
+                       0);
+}
+
+void VulkanComputeProgram::destroyUniformBuffer()
+{
+    vkFreeMemory(logicalDevice,
+                 uniformBufferMemory,
+                 nullptr);
+    
+    vkDestroyBuffer(logicalDevice,
+                    uniformBuffer,
+                    nullptr);
 }
 
 // MARK: - --- EPHEMERAL OBJECTS ---
@@ -479,7 +518,10 @@ void VulkanComputeProgram::createShaderModule()
         .pCode = reinterpret_cast<const uint32_t*>(computeShaderCode.data()),
     };
     
-    VK_ASSERT_SUCCESS(vkCreateShaderModule(logicalDevice, &createInfo, nullptr, &shaderModule),
+    VK_ASSERT_SUCCESS(vkCreateShaderModule(logicalDevice,
+                                           &createInfo,
+                                           nullptr,
+                                           &shaderModule),
                       "Failed to create shader module!");
 }
 
@@ -488,126 +530,57 @@ void VulkanComputeProgram::destroyShaderModule()
     vkDestroyShaderModule(logicalDevice, shaderModule, nullptr);
 }
 
-// MARK: - Buffers
+// MARK: - Image Buffers
 
-void createBuffer(VkPhysicalDevice physicalDevice,
-                  VkDevice logicalDevice,
-                  VkDeviceSize bufferSize,
-                  VkBufferUsageFlags usageFlags,
-                  uint32_t queueFamilyIndex,
-                  VkBuffer& buffer)
-{
-    // Create buffer
-    VkBufferCreateInfo createInfo {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .size = bufferSize,
-        .usage = usageFlags,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 1,
-        .pQueueFamilyIndices = &queueFamilyIndex,
-    };
-    
-    VK_ASSERT_SUCCESS(vkCreateBuffer(logicalDevice, &createInfo, nullptr, &buffer),
-                      "Failed to create buffer!");
-}
-
-void VulkanComputeProgram::createBuffers()
+void VulkanComputeProgram::createImageBuffers()
 {
     auto bufferSize = static_cast<VkDeviceSize>(imageInfo.size());
     
-    createBuffer(physicalDevice,
-                 logicalDevice,
-                 bufferSize,
-                 VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                 computeQueueFamilyIndex,
-                 inputBuffer);
+    VulkanUtils::createBuffer(physicalDevice,
+                              logicalDevice,
+                              bufferSize,
+                              VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                              computeQueueFamilyIndex,
+                              inputBuffer);
     
-    createBuffer(physicalDevice,
-                 logicalDevice,
-                 bufferSize,
-                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                 computeQueueFamilyIndex,
-                 outputBuffer);
+    VulkanUtils::createBuffer(physicalDevice,
+                              logicalDevice,
+                              bufferSize,
+                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                              computeQueueFamilyIndex,
+                              outputBuffer);
 }
 
-void VulkanComputeProgram::destroyBuffers()
+void VulkanComputeProgram::destroyImageBuffers()
 {
     vkDestroyBuffer(logicalDevice, inputBuffer, nullptr);
     vkDestroyBuffer(logicalDevice, outputBuffer, nullptr);
 }
 
-// MARK: - Buffer Memory
+// MARK: - Image Buffer Memory
 
-void allocateBufferMemory(VkPhysicalDevice physicalDevice,
-                          VkDevice logicalDevice,
-                          VkDeviceSize bufferSize,
-                          VkMemoryPropertyFlags propertyFlags,
-                          VkBuffer& buffer,
-                          VkDeviceMemory& memory)
-{
-    VkMemoryRequirements memoryRequirements;
-    vkGetBufferMemoryRequirements(logicalDevice, buffer, &memoryRequirements);
-    
-    VkPhysicalDeviceMemoryProperties memoryProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
-    VkDeviceSize availableMemorySize;
-    uint32_t memoryTypeIndex = VK_MAX_MEMORY_TYPES;
-    
-    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
-    {
-        auto memoryType = memoryProperties.memoryTypes[i];
-        auto memoryHeap = memoryProperties.memoryHeaps[memoryType.heapIndex];
-        
-        if ((memoryRequirements.memoryTypeBits & (1 << i))
-            && (memoryType.propertyFlags & propertyFlags) == propertyFlags
-            && bufferSize <= memoryHeap.size)
-        {
-            memoryTypeIndex = i;
-            availableMemorySize = memoryHeap.size;
-            break;
-        }
-    }
-    
-    if (memoryTypeIndex == VK_MAX_MEMORY_TYPES)
-    {
-        throw std::runtime_error("Failed to find suitable memory!");
-    }
-    
-    VkMemoryAllocateInfo allocInfo {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .pNext = nullptr,
-        .allocationSize = memoryRequirements.size,
-        .memoryTypeIndex = memoryTypeIndex,
-    };
-    
-    VK_ASSERT_SUCCESS(vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &memory),
-                      "Failed to allocate device memory!");
-}
-
-void VulkanComputeProgram::createBufferMemory()
+void VulkanComputeProgram::createImageBufferMemory()
 {
     auto memorySize = static_cast<VkDeviceSize>(imageInfo.size());
     
     VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     
-    allocateBufferMemory(physicalDevice,
-                         logicalDevice,
-                         memorySize,
-                         memoryFlags,
-                         inputBuffer,
-                         inputBufferMemory);
+    VulkanUtils::allocateBufferMemory(physicalDevice,
+                                      logicalDevice,
+                                      memorySize,
+                                      memoryFlags,
+                                      inputBuffer,
+                                      inputBufferMemory);
     
-    allocateBufferMemory(physicalDevice,
-                         logicalDevice,
-                         memorySize,
-                         memoryFlags,
-                         outputBuffer,
-                         outputBufferMemory);
+    VulkanUtils::allocateBufferMemory(physicalDevice,
+                                      logicalDevice,
+                                      memorySize,
+                                      memoryFlags,
+                                      outputBuffer,
+                                      outputBufferMemory);
 }
 
-void VulkanComputeProgram::destroyBufferMemory()
+void VulkanComputeProgram::destroyImageBufferMemory()
 {
     vkFreeMemory(logicalDevice, inputBufferMemory, nullptr);
     vkFreeMemory(logicalDevice, outputBufferMemory, nullptr);
@@ -623,74 +596,19 @@ void VulkanComputeProgram::bindBufferMemory()
 
 // MARK: - Images
 
-VkFormat getImageFormat(ImageInfo imageInfo)
-{
-    // TODO: sRGB or uint?
-    switch (imageInfo.pixelFormat)
-    {
-        case PixelFormat::ARGB32:
-            return VK_FORMAT_R8G8B8A8_UNORM;
-        case PixelFormat::ARGB64:
-            return VK_FORMAT_R16G16B16A16_UNORM;
-        case PixelFormat::ARGB128:
-            return VK_FORMAT_R32G32B32A32_SFLOAT;
-    }
-}
-
-VkExtent3D getImageExtent(ImageInfo imageInfo)
-{
-    return {
-        .width = imageInfo.width,
-        .height = imageInfo.height,
-        .depth = 1,
-    };
-}
-
-void createImage(VkDevice logicalDevice,
-                 ImageInfo imageInfo,
-                 VkImageUsageFlags usageFlags,
-                 VkImage& image)
-{
-    // fetch some image properties
-    auto imageFormat = getImageFormat(imageInfo);
-    auto imageExtent = getImageExtent(imageInfo);
-    
-    // Create buffer
-    VkImageCreateInfo createInfo {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-        .imageType = VK_IMAGE_TYPE_2D,
-        .format = imageFormat,
-        .extent = imageExtent,
-        .mipLevels = 1,
-        .arrayLayers = 1,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .tiling = VK_IMAGE_TILING_OPTIMAL,
-        .usage = usageFlags,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 0,
-        .pQueueFamilyIndices = nullptr,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-    };
-    
-    VK_ASSERT_SUCCESS(vkCreateImage(logicalDevice, &createInfo, nullptr, &image),
-                      "Failed to create image!");
-}
-
 void VulkanComputeProgram::createImages()
 {
     // create input image
-    createImage(logicalDevice,
-                imageInfo,
-                VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                inputImage);
+    VulkanUtils::createImage(logicalDevice,
+                             imageInfo,
+                             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                             inputImage);
     
     // create output image
-    createImage(logicalDevice,
-                imageInfo,
-                VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                outputImage);
+    VulkanUtils::createImage(logicalDevice,
+                             imageInfo,
+                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                             outputImage);
 }
 
 void VulkanComputeProgram::destroyImages()
@@ -701,60 +619,12 @@ void VulkanComputeProgram::destroyImages()
 
 // MARK: - Image Memory
 
-void allocateImageMemory(VkPhysicalDevice physicalDevice,
-                         VkDevice logicalDevice,
-                         ImageInfo imageInfo,
-                         VkMemoryPropertyFlags propertyFlags,
-                         VkImage& image,
-                         VkDeviceMemory& memory)
-{
-    auto imageSize = static_cast<VkDeviceSize>(imageInfo.size());
-    
-    VkMemoryRequirements memoryRequirements;
-    vkGetImageMemoryRequirements(logicalDevice, image, &memoryRequirements);
-    
-    VkPhysicalDeviceMemoryProperties memoryProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
-    VkDeviceSize availableMemorySize;
-    uint32_t memoryTypeIndex = VK_MAX_MEMORY_TYPES;
-    
-    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
-    {
-        auto memoryType = memoryProperties.memoryTypes[i];
-        auto memoryHeap = memoryProperties.memoryHeaps[memoryType.heapIndex];
-        
-        if ((memoryRequirements.memoryTypeBits & (1 << i))
-            && (memoryType.propertyFlags & propertyFlags) == propertyFlags
-            && imageSize <= memoryHeap.size)
-        {
-            memoryTypeIndex = i;
-            availableMemorySize = memoryHeap.size;
-            break;
-        }
-    }
-    
-    if (memoryTypeIndex == VK_MAX_MEMORY_TYPES)
-    {
-        throw std::runtime_error("Failed to find suitable memory!");
-    }
-    
-    VkMemoryAllocateInfo allocInfo {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .pNext = nullptr,
-        .allocationSize = memoryRequirements.size,
-        .memoryTypeIndex = memoryTypeIndex,
-    };
-    
-    VK_ASSERT_SUCCESS(vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &memory),
-                      "Failed to allocate device memory!");
-}
-
 void VulkanComputeProgram::createImageMemory()
 {
     VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     
-    allocateImageMemory(physicalDevice, logicalDevice, imageInfo, memoryFlags, inputImage, inputImageMemory);
-    allocateImageMemory(physicalDevice, logicalDevice, imageInfo, memoryFlags, outputImage, outputImageMemory);
+    VulkanUtils::allocateImageMemory(physicalDevice, logicalDevice, imageInfo, memoryFlags, inputImage, inputImageMemory);
+    VulkanUtils::allocateImageMemory(physicalDevice, logicalDevice, imageInfo, memoryFlags, outputImage, outputImageMemory);
 }
 
 void VulkanComputeProgram::destroyImageMemory()
@@ -772,41 +642,20 @@ void VulkanComputeProgram::bindImageMemory()
 }
 
 // MARK: - Image Views
-void createImageView(VkDevice logicalDevice, VkFormat format, VkImage& image, VkImageView& imageView)
-{
-    VkImageViewCreateInfo createInfo {
-        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        createInfo.pNext = nullptr,
-        createInfo.flags = 0,
-        createInfo.image = image,
-        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D,
-        createInfo.format = format,
-        createInfo.components = {
-            // TODO: We might need to swizzle
-            .a = VK_COMPONENT_SWIZZLE_A,
-            .r = VK_COMPONENT_SWIZZLE_R,
-            .g = VK_COMPONENT_SWIZZLE_G,
-            .b = VK_COMPONENT_SWIZZLE_B,
-        },
-        createInfo.subresourceRange = {
-            .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-            .baseMipLevel   = 0,
-            .levelCount     = 1,
-            .baseArrayLayer = 0,
-            .layerCount     = 1,
-        },
-    };
-    
-    VK_ASSERT_SUCCESS(vkCreateImageView(logicalDevice, &createInfo, nullptr, &imageView),
-                      "Failed to create image view!");
-}
 
 void VulkanComputeProgram::createImageViews()
 {
-    VkFormat format = getImageFormat(imageInfo);
+    VkFormat format = VulkanUtils::getImageFormat(imageInfo);
     
-    createImageView(logicalDevice, format, inputImage, inputImageView);
-    createImageView(logicalDevice, format, outputImage, outputImageView);
+    VulkanUtils::createImageView(logicalDevice,
+                                 format,
+                                 inputImage,
+                                 inputImageView);
+    
+    VulkanUtils::createImageView(logicalDevice,
+                                 format,
+                                 outputImage,
+                                 outputImageView);
 }
 
 void VulkanComputeProgram::destroyImageViews()
@@ -834,20 +683,32 @@ void VulkanComputeProgram::createDescriptorSetLayout()
         .pImmutableSamplers = nullptr,
     };
     
-    VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[2] = {
+    VkDescriptorSetLayoutBinding uniformLayoutBinding {
+        .binding = 2,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = 1,
+        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+        .pImmutableSamplers = nullptr,
+    };
+    
+    VkDescriptorSetLayoutBinding descriptorSetLayoutBindings[3] = {
         inputLayoutBinding,
         outputLayoutBinding,
+        uniformLayoutBinding,
     };
     
     VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
-        .bindingCount = 2,
+        .bindingCount = 3,
         .pBindings = descriptorSetLayoutBindings,
     };
     
-    VK_ASSERT_SUCCESS(vkCreateDescriptorSetLayout(logicalDevice, &descriptorSetLayoutCreateInfo, nullptr, &descriptorSetLayout),
+    VK_ASSERT_SUCCESS(vkCreateDescriptorSetLayout(logicalDevice,
+                                                  &descriptorSetLayoutCreateInfo,
+                                                  nullptr,
+                                                  &descriptorSetLayout),
                       "Failed to create descriptor set layout!");
 }
 
@@ -1140,12 +1001,34 @@ void VulkanComputeProgram::updateDescriptorSet()
         .pTexelBufferView = nullptr,
     };
     
-    VkWriteDescriptorSet writeDescriptorSet[2] = {
-        inputWriteDescriptorSet,
-        outputWriteDescriptorSet,
+    // Uniforms
+    
+    VkDescriptorBufferInfo uniformBufferInfo {
+        .buffer = uniformBuffer,
+        .offset = 0,
+        .range = sizeof(UniformBufferObject),
     };
     
-    vkUpdateDescriptorSets(logicalDevice, 2, writeDescriptorSet, 0, nullptr);
+    VkWriteDescriptorSet uniformWriteDescriptorSet {
+        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+        .pNext = nullptr,
+        .dstSet = descriptorSet,
+        .dstBinding = 2,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .pImageInfo = nullptr,
+        .pBufferInfo = &uniformBufferInfo,
+        .pTexelBufferView = nullptr,
+    };
+    
+    VkWriteDescriptorSet writeDescriptorSet[3] = {
+        inputWriteDescriptorSet,
+        outputWriteDescriptorSet,
+        uniformWriteDescriptorSet,
+    };
+    
+    vkUpdateDescriptorSets(logicalDevice, 3, writeDescriptorSet, 0, nullptr);
 }
 
 

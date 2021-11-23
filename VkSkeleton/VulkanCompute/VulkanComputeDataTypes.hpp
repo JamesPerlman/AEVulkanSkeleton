@@ -33,4 +33,8 @@ struct ImageLayoutTransitionInfo {
     VkPipelineStageFlags srcStageMask, dstStageMask;
 };
 
+struct UniformBufferObject {
+    float pivot;
+};
+
 #endif /* VulkanComputeDataTypes_h */

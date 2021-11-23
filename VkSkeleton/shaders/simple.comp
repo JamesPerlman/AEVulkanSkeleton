@@ -4,11 +4,15 @@ layout (set = 0, binding = 0) uniform sampler2D inputSampler;
 
 layout (set = 0, binding = 1) writeonly uniform image2D outputImage;
 
+layout (set = 0, binding = 2) uniform UniformBufferObject {
+    float pivot;
+} ubo;
+
 void main()
 {
     vec2 uv = vec2(gl_GlobalInvocationID.xy) / vec2(gl_NumWorkGroups.xy);
 
-    vec4 pivot = vec4(0.0, 1.0, 1.0, 1.0);
+    vec4 pivot = vec4(0.0, vec3(ubo.pivot));
     vec4 color = abs(pivot - texture(inputSampler, uv));
     
     imageStore(outputImage, ivec2(gl_GlobalInvocationID.xy), color);

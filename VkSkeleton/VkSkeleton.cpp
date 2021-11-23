@@ -110,14 +110,17 @@ ParamsSetup (
     PF_ParamDef	def;
     
     AEFX_CLR_STRUCT(def);
-    
-    PF_ADD_SLIDER(STR(StrID_Name),
-                  VKSKELETON_SLIDER_MIN,
-                  VKSKELETON_SLIDER_MAX,
-                  VKSKELETON_SLIDER_MIN,
-                  VKSKELETON_SLIDER_MAX,
-                  VKSKELETON_SLIDER_DFLT,
-                  VKSKELETON_SLIDER_DISK_ID);
+
+    PF_ADD_FLOAT_SLIDERX(STR(StrID_Pivot_Param_Name),
+                         VKSKELETON_SLIDER_MIN,
+                         VKSKELETON_SLIDER_MAX,
+                         VKSKELETON_SLIDER_MIN,
+                         VKSKELETON_SLIDER_MAX,
+                         VKSKELETON_SLIDER_DFLT,
+                         PF_Precision_HUNDREDTHS,
+                         PF_ValueDisplayFlag_NONE,
+                         PF_ParamFlag_NONE,
+                         VKSKELETON_SLIDER_DISK_ID);
     
     out_data->num_params = VKSKELETON_NUM_PARAMS;
     
@@ -127,10 +130,9 @@ ParamsSetup (
 // MARK: - PreRender
 
 static PF_Err
-PreRender(
-          PF_InData				*in_data,
-          PF_OutData				*out_data,
-          PF_PreRenderExtra		*extra)
+PreRender(PF_InData*            in_data,
+          PF_OutData*           out_data,
+          PF_PreRenderExtra*    extra)
 {
     PF_Err	err = PF_Err_NONE,
     err2 = PF_Err_NONE;
@@ -169,10 +171,9 @@ PreRender(
 // MARK: - SmartRender
 
 static PF_Err
-SmartRender(
-            PF_InData				*in_data,
-            PF_OutData				*out_data,
-            PF_SmartRenderExtra		*extra)
+SmartRender(PF_InData*			    in_data,
+            PF_OutData*			    out_data,
+            PF_SmartRenderExtra*	extra)
 {
     PF_Err				err = PF_Err_NONE,
     err2 = PF_Err_NONE;
@@ -216,6 +217,9 @@ SmartRender(
                           "Couldn't load suite.",
                           (void**)&wsP));
     
+    UniformBufferObject ubo {
+        .pivot = static_cast<float>(slider_param.u.fs_d.value),
+    };
     
     if (!err){
         try
@@ -249,8 +253,10 @@ SmartRender(
                                        buffer);
             };
             
-            computeProgram.process(imageInfo, copyInputWorldToBuffer, copyBufferToOutputWorld);
-            
+            computeProgram.process(imageInfo,
+                                   ubo,
+                                   copyInputWorldToBuffer,
+                                   copyBufferToOutputWorld);
         }
         catch (PF_Err& thrown_err)
         {
@@ -283,13 +289,12 @@ SmartRender(
 // MARK: - EffectMain
 
 PF_Err
-EffectMain(
-           PF_Cmd			cmd,
-           PF_InData		*in_data,
-           PF_OutData		*out_data,
-           PF_ParamDef		*params[],
-           PF_LayerDef		*output,
-           void			*extra)
+EffectMain(PF_Cmd		cmd,
+           PF_InData*	in_data,
+           PF_OutData*	out_data,
+           PF_ParamDef*	params[],
+           PF_LayerDef*	output,
+           void*        extra)
 {
     PF_Err		err = PF_Err_NONE;
     
@@ -344,17 +349,15 @@ EffectMain(
 
 // Mark: - PluginDataEntryFunction
 extern "C" DllExport
-PF_Err PluginDataEntryFunction(
-                               PF_PluginDataPtr inPtr,
-                               PF_PluginDataCB inPluginDataCallBackPtr,
-                               SPBasicSuite* inSPBasicSuitePtr,
-                               const char* inHostName,
-                               const char* inHostVersion)
+PF_Err PluginDataEntryFunction(PF_PluginDataPtr inPtr,
+                               PF_PluginDataCB  inPluginDataCallBackPtr,
+                               SPBasicSuite*    inSPBasicSuitePtr,
+                               const char*      inHostName,
+                               const char*      inHostVersion)
 {
     PF_Err result = PF_Err_INVALID_CALLBACK;
     
-    result = PF_REGISTER_EFFECT(
-                                inPtr,
+    result = PF_REGISTER_EFFECT(inPtr,
                                 inPluginDataCallBackPtr,
                                 "VkSkeleton", // Name
                                 "JPERL VkSkeleton", // Match Name
