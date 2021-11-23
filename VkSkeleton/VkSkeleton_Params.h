@@ -10,9 +10,9 @@
 
 /* Parameter defaults */
 
-#define    VKSKELETON_SLIDER_MIN        0
-#define    VKSKELETON_SLIDER_MAX        1
-#define    VKSKELETON_SLIDER_DFLT       0
+#define    VKSKELETON_SLIDER_MIN        0.f
+#define    VKSKELETON_SLIDER_MAX        1.f
+#define    VKSKELETON_SLIDER_DFLT       0.f
 
 enum {
     VKSKELETON_INPUT = 0,
