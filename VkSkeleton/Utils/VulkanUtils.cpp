@@ -248,3 +248,27 @@ void VulkanUtils::createImageView(VkDevice logicalDevice, VkFormat format, VkIma
     VK_ASSERT_SUCCESS(vkCreateImageView(logicalDevice, &createInfo, nullptr, &imageView),
                       "Failed to create image view!");
 }
+
+// Returns the nearest power-of-two greater than or equal to x
+uint32_t potGTE(uint32_t x)
+{
+    for (char i = 0; i < 32; ++i)
+    {
+        // if (x shifted right by i) is the rightmost bit...
+        if ((x >> i) == 1)
+        {
+            // then we know i is the greatest power of two less than or equal to x
+            if (1 << i == x) {
+                // this covers the equal-to case
+                return x;
+            } else {
+                // if ((1 << i) != x), we can assume (1 << i) is less than x
+                // so we just return the next power of two
+                return 1 << (i + 1);
+            }
+        }
+    }
+    
+    // x must be zero
+    return 1;
+}

@@ -49,6 +49,8 @@ void allocateImageMemory(VkPhysicalDevice physicalDevice,
 
 void createImageView(VkDevice logicalDevice, VkFormat format, VkImage& image, VkImageView& imageView);
 
+uint32_t potGTE(uint32_t x);
+
 }
 
 #endif /* VulkanUtils_hpp */
