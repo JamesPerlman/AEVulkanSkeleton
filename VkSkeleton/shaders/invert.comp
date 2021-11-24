@@ -1,0 +1,59 @@
+
+#version 450
+
+layout (set = 0, binding = 0) uniform sampler2D inputSampler;
+
+layout (set = 0, binding = 1) writeonly uniform image2D outputImage;
+
+layout (set = 0, binding = 2) uniform UniformBufferObject {
+    float pivot;
+} ubo;
+#define PI 3.1415926535897932384626433832795
+void main()
+{
+    ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+    vec2 s = vec2(gl_NumWorkGroups.xy);
+    
+    vec2 c = 0.5f * s;
+    vec2 p = vec2(xy);
+    
+    vec2 cp = p - c;
+    
+    float l_cp = length(cp);
+    
+    if (l_cp < 1.f) {
+        imageStore(outputImage, xy, vec4(0.f));
+        return;
+    }
+    
+    // aspect-corrected cp
+    vec2 a = cp * vec2(1.f, s.x / s.y);
+    
+    // nearest edge point
+    vec2 np;
+    
+    if (abs(a.x) <= a.y) {
+        // y+ quadrant
+        np = c.y * vec2(cp.x / cp.y, 1.f);
+    } else if (abs(a.y) <= -a.x) {
+        // x- quadrant
+        np = -c.x * vec2(1.f, cp.y / cp.x);
+    } else if (abs(a.x) <= -a.y) {
+        // y- quadrant
+        np = -c.y * vec2(cp.x / cp.y, 1.f);
+    } else if (abs(a.y) <= a.x) {
+        // x+ quadrant
+        np = c.x * vec2(1.f, cp.y / cp.x);
+    }
+    
+    
+    // progress along cp -> np
+    float t = abs(ubo.pivot - l_cp / length(np));
+    
+    // point to sample from
+    vec2 uv = (c + mix(vec2(0.f), np, t)) / s;
+    
+    vec4 color = texture(inputSampler, uv);
+    
+    imageStore(outputImage, xy, color);
+}

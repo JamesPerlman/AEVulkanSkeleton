@@ -53,6 +53,7 @@
 
 /* Begin PBXFileReference section */
 		1A74E2C62734AC9E00089B12 /* simple.comp */ = {isa = PBXFileReference; explicitFileType = sourcecode.glsl; fileEncoding = 4; path = simple.comp; sourceTree = "<group>"; };
+		1AAD83A3274D779F00E7CBCD /* invert.comp */ = {isa = PBXFileReference; explicitFileType = sourcecode.glsl; path = invert.comp; sourceTree = "<group>"; };
 		1AB0567F272DA97000D59EC5 /* AE_ComputeCacheSuite.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AE_ComputeCacheSuite.h; path = ../Headers/AE_ComputeCacheSuite.h; sourceTree = "<group>"; };
 		1AB05684272DC89000D59EC5 /* VkExample.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = VkExample.cpp; sourceTree = "<group>"; };
 		1AB05686272EF3D500D59EC5 /* VulkanComputeDataTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = VulkanComputeDataTypes.hpp; sourceTree = "<group>"; };
@@ -109,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				1A74E2C62734AC9E00089B12 /* simple.comp */,
+				1AAD83A3274D779F00E7CBCD /* invert.comp */,
 			);
 			name = shaders;
 			path = ../shaders;
